@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="Rules for Jellyfin" Description="Code analysis rules for Jellyfin." ToolsVersion="14.0">
+  <Rules AnalyzerId="Microsoft.CodeAnalysis.NetAnalyzers" RuleNamespace="Microsoft.NetCore.Analyzers">
+    <!-- Plugin class name conflicts with the Jellyfin.Plugin namespace — by design -->
+    <Rule Id="CA1724" Action="None" />
+    <!-- AuthenticateUser can throw several undocumented Jellyfin exception types -->
+    <Rule Id="CA1031" Action="None" />
+    <!-- XML serializer requires List<T> and a public setter on collection properties -->
+    <Rule Id="CA1002" Action="None" />
+    <Rule Id="CA2227" Action="None" />
+    <!-- [ApiController] + [FromBody] guarantees non-null; CA1062 is a false positive here -->
+    <Rule Id="CA1062" Action="None" />
+    <!-- LoggerMessage delegates are a perf optimisation; not required for this plugin -->
+    <Rule Id="CA1848" Action="None" />
+  </Rules>
+  <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
+    <!-- Allow underscore-prefixed private fields (standard C# convention) -->
+    <Rule Id="SA1309" Action="None" />
+  </Rules>
+</RuleSet>

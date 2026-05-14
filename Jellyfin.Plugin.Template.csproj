@@ -7,7 +7,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Nullable>enable</Nullable>
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
-    <CodeAnalysisRuleSet>../jellyfin.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>jellyfin.ruleset</CodeAnalysisRuleSet>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <Version>1.0.0.0</Version>
   </PropertyGroup>
