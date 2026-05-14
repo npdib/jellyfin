@@ -5,6 +5,8 @@
 
 namespace Jellyfin.Plugin.Template.Api.Models;
 
+using System.Text.Json.Serialization;
+
 /// <summary>
 /// Response from the password status endpoint.
 /// </summary>
@@ -13,5 +15,6 @@ public sealed class PasswordStatusResponse
     /// <summary>
     /// Gets or sets a value indicating whether the authenticated user must change their password.
     /// </summary>
+    [JsonPropertyName("resetRequired")]
     public bool ResetRequired { get; set; }
 }
