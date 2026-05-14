@@ -125,38 +125,6 @@
             Gets or sets the list of user IDs (format N, no hyphens) that must reset their password on next login.
             </summary>
         </member>
-        <member name="T:Jellyfin.Plugin.Template.CustomJsInstaller">
-            <summary>
-            Hosted service that runs at server startup and ensures the enforcement
-            loader is present in the Jellyfin web root's custom.js.
-            This removes the need for any manual file editing on the server.
-            </summary>
-        </member>
-        <member name="F:Jellyfin.Plugin.Template.CustomJsInstaller.Marker">
-            <summary>
-            Unique marker written into custom.js so duplicate installs are detected.
-            </summary>
-        </member>
-        <member name="F:Jellyfin.Plugin.Template.CustomJsInstaller.Loader">
-            <summary>
-            The loader appended to (or written into) custom.js.
-            Uses ApiClient.serverAddress() when available, falls back to
-            window.location.origin so it works regardless of reverse-proxy base path.
-            </summary>
-        </member>
-        <member name="M:Jellyfin.Plugin.Template.CustomJsInstaller.#ctor(MediaBrowser.Common.Configuration.IApplicationPaths,Microsoft.Extensions.Logging.ILogger{Jellyfin.Plugin.Template.CustomJsInstaller})">
-            <summary>
-            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Template.CustomJsInstaller"/> class.
-            </summary>
-            <param name="applicationPaths">Provides the server's directory paths.</param>
-            <param name="logger">Logger instance.</param>
-        </member>
-        <member name="M:Jellyfin.Plugin.Template.CustomJsInstaller.StartAsync(System.Threading.CancellationToken)">
-            <inheritdoc />
-        </member>
-        <member name="M:Jellyfin.Plugin.Template.CustomJsInstaller.StopAsync(System.Threading.CancellationToken)">
-            <inheritdoc />
-        </member>
         <member name="T:Jellyfin.Plugin.Template.PasswordAttemptTracker">
             <summary>
             Thread-safe in-memory tracker for failed password change attempts.
@@ -218,15 +186,6 @@
             <inheritdoc />
         </member>
         <member name="M:Jellyfin.Plugin.Template.Plugin.GetPages">
-            <inheritdoc />
-        </member>
-        <member name="T:Jellyfin.Plugin.Template.PluginServiceRegistrator">
-            <summary>
-            Registers plugin services with Jellyfin's dependency injection container.
-            Jellyfin discovers this class automatically — no manual registration required.
-            </summary>
-        </member>
-        <member name="M:Jellyfin.Plugin.Template.PluginServiceRegistrator.RegisterServices(Microsoft.Extensions.DependencyInjection.IServiceCollection,MediaBrowser.Controller.IServerApplicationHost)">
             <inheritdoc />
         </member>
         <member name="T:Jellyfin.Plugin.Template.ValidationResult">
