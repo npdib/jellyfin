@@ -125,6 +125,19 @@
             Gets or sets the list of user IDs (format N, no hyphens) that must reset their password on next login.
             </summary>
         </member>
+        <member name="T:Jellyfin.Plugin.Template.FileTransformCallback">
+            <summary>
+            Callback invoked by the File Transformation plugin to inject the enforcement loader into index.html.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.FileTransformCallback.InjectLoader(Newtonsoft.Json.Linq.JObject)">
+            <summary>
+            Receives the contents of index.html and injects the PSE loader script before the closing body tag.
+            Called via reflection by the File Transformation plugin.
+            </summary>
+            <param name="payload">JSON object with a "contents" field containing the file text.</param>
+            <returns>Transformed file contents.</returns>
+        </member>
         <member name="T:Jellyfin.Plugin.Template.PasswordAttemptTracker">
             <summary>
             Thread-safe in-memory tracker for failed password change attempts.
@@ -186,6 +199,44 @@
             <inheritdoc />
         </member>
         <member name="M:Jellyfin.Plugin.Template.Plugin.GetPages">
+            <inheritdoc />
+        </member>
+        <member name="T:Jellyfin.Plugin.Template.PluginServiceRegistrator">
+            <summary>
+            Registers plugin services into the Jellyfin DI container.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.PluginServiceRegistrator.RegisterServices(Microsoft.Extensions.DependencyInjection.IServiceCollection,MediaBrowser.Controller.IServerApplicationHost)">
+            <inheritdoc />
+        </member>
+        <member name="T:Jellyfin.Plugin.Template.PseStartupTask">
+            <summary>
+            Scheduled startup task that registers the PSE index.html transformation with the
+            File Transformation plugin (https://github.com/IAmParadox27/jellyfin-plugin-file-transformation).
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.PseStartupTask.#ctor(Microsoft.Extensions.Logging.ILogger{Jellyfin.Plugin.Template.PseStartupTask})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Template.PseStartupTask"/> class.
+            </summary>
+            <param name="logger">Logger instance.</param>
+        </member>
+        <member name="P:Jellyfin.Plugin.Template.PseStartupTask.Name">
+            <inheritdoc />
+        </member>
+        <member name="P:Jellyfin.Plugin.Template.PseStartupTask.Key">
+            <inheritdoc />
+        </member>
+        <member name="P:Jellyfin.Plugin.Template.PseStartupTask.Description">
+            <inheritdoc />
+        </member>
+        <member name="P:Jellyfin.Plugin.Template.PseStartupTask.Category">
+            <inheritdoc />
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.PseStartupTask.ExecuteAsync(System.IProgress{System.Double},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.PseStartupTask.GetDefaultTriggers">
             <inheritdoc />
         </member>
         <member name="T:Jellyfin.Plugin.Template.ValidationResult">
