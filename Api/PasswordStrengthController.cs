@@ -10,7 +10,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Jellyfin.Data.Enums;
+using Jellyfin.Data;
+using Jellyfin.Database.Implementations.Enums;
 using Jellyfin.Plugin.Template.Api.Models;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Net;
@@ -116,7 +117,6 @@ public class PasswordStrengthController : ControllerBase
             await this._userManager.AuthenticateUser(
                 authInfo.User.Username,
                 request.CurrentPassword,
-                string.Empty,
                 remoteIp,
                 false).ConfigureAwait(false);
         }
@@ -177,7 +177,6 @@ public class PasswordStrengthController : ControllerBase
             await this._userManager.AuthenticateUser(
                 authInfo.User.Username,
                 request.AdminPassword,
-                string.Empty,
                 remoteIp,
                 false).ConfigureAwait(false);
         }
