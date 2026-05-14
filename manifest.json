@@ -8,6 +8,14 @@
     "owner": "npdib",
     "versions": [
       {
+        "version": "0.5.3",
+        "changelog": "- fix: set AssemblyVersion to 0.5.2.0 so local builds match manifest version",
+        "targetAbi": "10.9.0.0",
+        "sourceUrl": "https://github.com/npdib/jellyfin/releases/download/v0.5.3/Jellyfin.Plugin.Template_0.5.3.zip",
+        "checksum": "302CE13E1EBD585297B9C346DA2C354D",
+        "timestamp": "2026-05-14T15:28:49Z"
+      },
+      {
         "version": "0.5.2",
         "changelog": "- feat: fix policy enforcement, add FT warning, bullet requirements",
         "targetAbi": "10.9.0.0",
