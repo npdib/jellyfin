@@ -45,14 +45,19 @@ jobs:
                 | awk '{print $1}' | tr '[:lower:]' '[:upper:]')
           echo "MD5=$MD5" >> "$GITHUB_OUTPUT"
 
-      - name: Update manifest.json
+      - name: Commit updated manifest.json
         run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+          # Re-apply the manifest patch on top of the current main
           VERSION="${{ steps.version.outputs.VERSION }}"
           CHECKSUM="${{ steps.checksum.outputs.MD5 }}"
           ZIP="Jellyfin.Plugin.Template_${VERSION}.zip"
           URL="https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${ZIP}"
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
           jq \
             --arg ver  "$VERSION" \
             --arg url  "$URL" \
@@ -63,18 +68,12 @@ jobs:
              .[0].versions[0].checksum  = $sum |
              .[0].versions[0].timestamp = $ts' \
             manifest.json > manifest.tmp.json
-
           mv manifest.tmp.json manifest.json
-
-      - name: Commit updated manifest.json
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add manifest.json
           # Skip if nothing changed (idempotent re-runs)
           git diff --staged --quiet || \
-            git commit -m "chore: update manifest for v${{ steps.version.outputs.VERSION }} [skip ci]"
-          git push origin HEAD:main
+            git commit -m "chore: update manifest for v${VERSION} [skip ci]"
+          git push origin main
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
