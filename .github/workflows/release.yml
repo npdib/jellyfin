@@ -1,0 +1,83 @@
+name: Release Plugin
+
+# Triggers when you push a tag like v1.0.0.0
+on:
+  push:
+    tags:
+      - "v*.*.*.*"
+
+permissions:
+  contents: write   # needed to push manifest.json and create the release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Use a token that can push back to the repo
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build (Release)
+        run: dotnet publish Jellyfin.Plugin.Template.csproj -c Release -o ./publish --nologo
+
+      - name: Package zip
+        run: |
+          mkdir -p dist
+          zip -j "dist/Jellyfin.Plugin.Template_${{ steps.version.outputs.VERSION }}.zip" \
+              publish/Jellyfin.Plugin.Template.dll
+
+      - name: Calculate MD5 checksum
+        id: checksum
+        run: |
+          MD5=$(md5sum "dist/Jellyfin.Plugin.Template_${{ steps.version.outputs.VERSION }}.zip" \
+                | awk '{print $1}' | tr '[:lower:]' '[:upper:]')
+          echo "MD5=$MD5" >> "$GITHUB_OUTPUT"
+
+      - name: Update manifest.json
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          CHECKSUM="${{ steps.checksum.outputs.MD5 }}"
+          ZIP="Jellyfin.Plugin.Template_${VERSION}.zip"
+          URL="https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${ZIP}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          jq \
+            --arg ver  "$VERSION" \
+            --arg url  "$URL" \
+            --arg sum  "$CHECKSUM" \
+            --arg ts   "$TIMESTAMP" \
+            '.[0].versions[0].version   = $ver |
+             .[0].versions[0].sourceUrl = $url |
+             .[0].versions[0].checksum  = $sum |
+             .[0].versions[0].timestamp = $ts' \
+            manifest.json > manifest.tmp.json
+
+          mv manifest.tmp.json manifest.json
+
+      - name: Commit updated manifest.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          # Skip if nothing changed (idempotent re-runs)
+          git diff --staged --quiet || \
+            git commit -m "chore: update manifest for v${{ steps.version.outputs.VERSION }} [skip ci]"
+          git push origin HEAD:main
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Jellyfin.Plugin.Template_${{ steps.version.outputs.VERSION }}.zip
+          generate_release_notes: true
