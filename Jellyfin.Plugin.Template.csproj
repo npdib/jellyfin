@@ -42,10 +42,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Configuration\configPage.html" />
-    <EmbeddedResource Include="Configuration\configPage.html" />
-    <None Remove="web\enforcement.js" />
-    <EmbeddedResource Include="web\enforcement.js" />
+    <None Remove="src\Configuration\configPage.html" />
+    <EmbeddedResource Include="src\Configuration\configPage.html">
+      <LogicalName>Jellyfin.Plugin.Template.Configuration.configPage.html</LogicalName>
+    </EmbeddedResource>
+    <None Remove="src\web\enforcement.js" />
+    <EmbeddedResource Include="src\web\enforcement.js">
+      <LogicalName>Jellyfin.Plugin.Template.web.enforcement.js</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>
