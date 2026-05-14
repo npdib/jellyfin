@@ -34,6 +34,13 @@ public static class FileTransformCallback
     {
         var contents = payload["contents"]?.ToString() ?? string.Empty;
 
+        // Guard: only transform HTML. The File Transformation plugin may match chunk .js files
+        // whose names contain "index" + any char + "html" if the pattern is treated as a regex.
+        if (!contents.TrimStart().StartsWith("<", StringComparison.Ordinal))
+        {
+            return contents;
+        }
+
         var idx = contents.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
         if (idx >= 0)
         {
