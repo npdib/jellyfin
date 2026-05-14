@@ -1,6 +1,6 @@
 /**
  * Password Strength Enforcement — client-side overlay.
- * Loaded by Jellyfin's custom.js and runs on every page in the web UI.
+ * Injected into index.html by the File Transformation plugin and runs on every page.
  *
  * Security notes:
  *  - All validation rules are ALSO enforced server-side; this is UX only.
@@ -16,6 +16,7 @@
 
     var isChecking = false;
     var isModalVisible = false;
+    var currentPolicy = null;
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -58,6 +59,44 @@
         return path;
     }
 
+    // ── Policy helpers ────────────────────────────────────────────────────────
+
+    var DEFAULT_POLICY = {
+        minLength: 8,
+        requireUppercase: true,
+        requireLowercase: true,
+        requireDigit: true,
+        requireSpecialCharacter: false,
+    };
+
+    function buildRequirementsText(policy) {
+        var parts = ['at least ' + policy.minLength + ' characters'];
+        if (policy.requireUppercase) { parts.push('one uppercase letter'); }
+        if (policy.requireLowercase) { parts.push('one lowercase letter'); }
+        if (policy.requireDigit) { parts.push('one number'); }
+        if (policy.requireSpecialCharacter) { parts.push('one special character'); }
+        return 'Requirements: ' + parts.join(', ') + '.';
+    }
+
+    function validatePolicy(pwd, policy) {
+        if (pwd.length < policy.minLength) {
+            return 'Password must be at least ' + policy.minLength + ' characters.';
+        }
+        if (policy.requireUppercase && !/[A-Z]/.test(pwd)) {
+            return 'Password must contain at least one uppercase letter.';
+        }
+        if (policy.requireLowercase && !/[a-z]/.test(pwd)) {
+            return 'Password must contain at least one lowercase letter.';
+        }
+        if (policy.requireDigit && !/[0-9]/.test(pwd)) {
+            return 'Password must contain at least one number.';
+        }
+        if (policy.requireSpecialCharacter && !/[^A-Za-z0-9]/.test(pwd)) {
+            return 'Password must contain at least one special character.';
+        }
+        return null;
+    }
+
     // ── Status check ─────────────────────────────────────────────────────────
 
     function checkStatus() {
@@ -83,7 +122,7 @@
                 if (r.ok) {
                     return r.json().then(function (data) {
                         if (data.resetRequired) {
-                            showModal();
+                            showModal(data.policy || DEFAULT_POLICY);
                         }
                     });
                 }
@@ -95,11 +134,12 @@
 
     // ── Modal ─────────────────────────────────────────────────────────────────
 
-    function showModal() {
+    function showModal(policy) {
         if (document.getElementById(MODAL_ID)) {
             return;
         }
 
+        currentPolicy = policy || DEFAULT_POLICY;
         isModalVisible = true;
 
         var overlay = document.createElement('div');
@@ -134,7 +174,7 @@
             '<h2 style="margin:0 0 0.4rem;font-size:1.25rem">Password Change Required</h2>',
             '<p style="margin:0 0 1.25rem;color:#999;font-size:0.875rem;line-height:1.5">',
             'Your password must be updated before you can continue.<br>',
-            'Requirements: at least 8 characters, one uppercase letter, one lowercase letter, one number.',
+            buildRequirementsText(currentPolicy),
             '</p>',
             '<div id="pse-error" style="display:none;color:#ff6b6b;font-size:0.875rem;margin-bottom:0.75rem"></div>',
             buildField('pse-current', 'Current Password', 'current-password'),
@@ -213,13 +253,10 @@
             return;
         }
 
-        // Client-side pre-check for UX feedback only.
-        // The server performs the authoritative validation.
-        if (newPwd.length < 8
-            || !/[A-Z]/.test(newPwd)
-            || !/[a-z]/.test(newPwd)
-            || !/[0-9]/.test(newPwd)) {
-            showError('Password must be at least 8 characters with an uppercase letter, a lowercase letter, and a number.');
+        // Client-side pre-check for UX feedback only — server performs authoritative validation.
+        var policyError = validatePolicy(newPwd, currentPolicy || DEFAULT_POLICY);
+        if (policyError) {
+            showError(policyError);
             return;
         }
 

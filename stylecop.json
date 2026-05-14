@@ -2,8 +2,8 @@
   "$schema": "https://raw.githubusercontent.com/DotNetAnalyzers/StyleCopAnalyzers/master/StyleCop.Analyzers/StyleCop.Analyzers/Settings/stylecop.schema.json",
   "settings": {
     "documentationRules": {
-      "companyName": "npdib ltd",
-      "copyrightText": "Copyright (c) npdib ltd. All rights reserved.\nLicensed under the MIT License."
+      "companyName": "Nicholas Dibb-Fuller",
+      "copyrightText": "Copyright (c) Nicholas Dibb-Fuller. All rights reserved.\nLicensed under the MIT License."
     }
   }
 }

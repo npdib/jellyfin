@@ -1,5 +1,5 @@
-// <copyright file="ChangePasswordRequest.cs" company="npdib ltd">
-// Copyright (c) npdib ltd. All rights reserved.
+﻿// <copyright file="ChangePasswordRequest.cs" company="Nicholas Dibb-Fuller">
+// Copyright (c) Nicholas Dibb-Fuller. All rights reserved.
 // Licensed under the MIT License.
 // </copyright>
 

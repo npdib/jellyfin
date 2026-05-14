@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Password Strength Enforcement</title>
+</head>
+<body>
+    <div id="PseConfigPage"
+         data-role="page"
+         class="page type-interior pluginConfigurationPage"
+         data-require="emby-input,emby-button,emby-checkbox">
+
+        <div data-role="content">
+            <div class="content-primary">
+
+                <h2 style="margin-top:0">Password Strength Enforcement</h2>
+
+                <!-- ── Password Policy ─────────────────────────────────────── -->
+                <div class="verticalSection">
+                    <h3>Password Policy</h3>
+                    <p style="color:#aaa;font-size:0.9em;line-height:1.6">
+                        Configure the strength requirements applied when users change their password.
+                        These rules are enforced server-side; the client overlay reflects them automatically.
+                    </p>
+
+                    <div class="inputContainer" style="max-width:200px">
+                        <label class="inputLabel inputLabelUnfocused" for="PseMinLength">Minimum Length</label>
+                        <input id="PseMinLength" type="number" min="4" max="128" is="emby-input" />
+                    </div>
+
+                    <div style="margin:0.75rem 0 0.25rem">
+                        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                            <input id="PseRequireUppercase" type="checkbox" is="emby-checkbox" />
+                            <span>Require uppercase letter</span>
+                        </label>
+                    </div>
+                    <div style="margin:0.25rem 0">
+                        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                            <input id="PseRequireLowercase" type="checkbox" is="emby-checkbox" />
+                            <span>Require lowercase letter</span>
+                        </label>
+                    </div>
+                    <div style="margin:0.25rem 0">
+                        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                            <input id="PseRequireDigit" type="checkbox" is="emby-checkbox" />
+                            <span>Require number</span>
+                        </label>
+                    </div>
+                    <div style="margin:0.25rem 0 0.75rem">
+                        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                            <input id="PseRequireSpecial" type="checkbox" is="emby-checkbox" />
+                            <span>Require special character</span>
+                        </label>
+                    </div>
+
+                    <div id="PseSaveError"
+                         style="color:#ff6b6b;font-size:0.9em;margin:0.5em 0;display:none"></div>
+                    <div id="PseSaveSuccess"
+                         style="color:#4caf50;font-size:0.9em;margin:0.5em 0;display:none"></div>
+
+                    <button is="emby-button"
+                            id="PseSaveBtn"
+                            class="raised emby-button"
+                            type="button"
+                            onclick="pseSavePolicy()">
+                        <span>Save Policy</span>
+                    </button>
+                </div>
+
+                <!-- ── Force Reset ──────────────────────────────────────────── -->
+                <div class="verticalSection" style="margin-top:2rem">
+                    <h3>Force Password Reset</h3>
+                    <p style="color:#aaa;font-size:0.9em;line-height:1.6">
+                        Select users to force a password reset, or use the button below to reset all
+                        non-admin accounts at once. Selected users are immediately logged out and must
+                        set a new password on their next login.<br><br>
+                        You must confirm your own password before this action takes effect.
+                    </p>
+
+                    <div id="PseUserList" style="margin:0.75rem 0;max-height:300px;overflow-y:auto;
+                         border:1px solid #444;border-radius:4px;padding:0.5rem;background:#1a1a1a">
+                        <p style="color:#777;font-size:0.85em;margin:0.25rem 0">Loading users&hellip;</p>
+                    </div>
+
+                    <div style="margin:0.5rem 0">
+                        <button is="emby-button" class="emby-button" type="button"
+                                onclick="pseSelectAll(true)"
+                                style="margin-right:0.5rem;font-size:0.85rem">
+                            Select All
+                        </button>
+                        <button is="emby-button" class="emby-button" type="button"
+                                onclick="pseSelectAll(false)"
+                                style="font-size:0.85rem">
+                            Deselect All
+                        </button>
+                    </div>
+
+                    <div class="inputContainer" style="max-width:320px;margin-top:1rem">
+                        <label class="inputLabel inputLabelUnfocused" for="PseAdminPassword">
+                            Your Password (confirmation)
+                        </label>
+                        <input id="PseAdminPassword"
+                               type="password"
+                               is="emby-input"
+                               autocomplete="current-password" />
+                    </div>
+
+                    <div id="PseResetError"
+                         style="color:#ff6b6b;font-size:0.9em;margin:0.5em 0;display:none"></div>
+                    <div id="PseResetSuccess"
+                         style="color:#4caf50;font-size:0.9em;margin:0.5em 0;display:none"></div>
+
+                    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.5em">
+                        <button is="emby-button"
+                                id="PseResetSelectedBtn"
+                                class="raised emby-button"
+                                type="button"
+                                onclick="pseResetSelected()">
+                            <span>Reset Selected Users</span>
+                        </button>
+                        <button is="emby-button"
+                                id="PseForceResetBtn"
+                                class="raised emby-button"
+                                type="button"
+                                style="background:#c0392b;color:#fff"
+                                onclick="pseForceReset()">
+                            <span>Reset All Non-Admin Users</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            (function () {
+                var PLUGIN_API = '/PasswordStrength';
+                var PLUGIN_GUID = '5a2d0001-12cf-4444-b2e3-e2f8e1f54e34';
+
+                // ── Helpers ────────────────────────────────────────────────
+
+                function getToken() {
+                    if (typeof ApiClient !== 'undefined' && typeof ApiClient.accessToken === 'function') {
+                        var t = ApiClient.accessToken();
+                        if (t) { return t; }
+                    }
+                    try {
+                        var raw = localStorage.getItem('jellyfin_credentials');
+                        if (raw) {
+                            var creds = JSON.parse(raw);
+                            var servers = creds.Servers || creds.servers || [];
+                            for (var i = 0; i < servers.length; i++) {
+                                var tok = servers[i].AccessToken || servers[i].accessToken;
+                                if (tok) { return tok; }
+                            }
+                        }
+                    } catch (e) { /* storage unavailable */ }
+                    return '';
+                }
+
+                function apiUrl(path) {
+                    if (typeof ApiClient !== 'undefined' && ApiClient.getUrl) {
+                        return ApiClient.getUrl(path);
+                    }
+                    return path;
+                }
+
+                function authHeaders() {
+                    return {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Emby-Token': getToken(),
+                    };
+                }
+
+                // ── Load config into form ──────────────────────────────────
+
+                window.fetch(apiUrl('/Plugins/' + PLUGIN_GUID + '/Configuration'), {
+                    headers: authHeaders(),
+                }).then(function (r) {
+                    return r.json();
+                }).then(function (cfg) {
+                    document.getElementById('PseMinLength').value = cfg.MinLength || 8;
+                    document.getElementById('PseRequireUppercase').checked = cfg.RequireUppercase !== false;
+                    document.getElementById('PseRequireLowercase').checked = cfg.RequireLowercase !== false;
+                    document.getElementById('PseRequireDigit').checked = cfg.RequireDigit !== false;
+                    document.getElementById('PseRequireSpecial').checked = !!cfg.RequireSpecialCharacter;
+                }).catch(function () { /* non-fatal */ });
+
+                // ── Load user list ─────────────────────────────────────────
+
+                window.fetch(apiUrl('/Users'), {
+                    headers: authHeaders(),
+                }).then(function (r) {
+                    return r.json();
+                }).then(function (users) {
+                    var nonAdmins = users.filter(function (u) {
+                        return !u.Policy || !u.Policy.IsAdministrator;
+                    });
+                    var listEl = document.getElementById('PseUserList');
+                    if (nonAdmins.length === 0) {
+                        listEl.innerHTML = '<p style="color:#777;font-size:0.85em;margin:0.25rem 0">No non-admin users found.</p>';
+                        return;
+                    }
+                    listEl.innerHTML = '';
+                    nonAdmins.forEach(function (u) {
+                        var row = document.createElement('label');
+                        row.style.cssText = 'display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0.25rem;cursor:pointer;border-radius:3px';
+                        var cb = document.createElement('input');
+                        cb.type = 'checkbox';
+                        cb.className = 'pse-user-cb';
+                        cb.value = u.Id;
+                        var name = document.createElement('span');
+                        name.style.fontSize = '0.9em';
+                        name.textContent = u.Name;
+                        row.appendChild(cb);
+                        row.appendChild(name);
+                        listEl.appendChild(row);
+                    });
+                }).catch(function () {
+                    document.getElementById('PseUserList').innerHTML =
+                        '<p style="color:#ff6b6b;font-size:0.85em;margin:0.25rem 0">Failed to load users.</p>';
+                });
+
+                // ── Select all / none ──────────────────────────────────────
+
+                window.pseSelectAll = function (checked) {
+                    document.querySelectorAll('.pse-user-cb').forEach(function (cb) {
+                        cb.checked = checked;
+                    });
+                };
+
+                // ── Save policy ────────────────────────────────────────────
+
+                window.pseSavePolicy = function () {
+                    var errEl = document.getElementById('PseSaveError');
+                    var okEl = document.getElementById('PseSaveSuccess');
+                    var btn = document.getElementById('PseSaveBtn');
+                    errEl.style.display = 'none';
+                    okEl.style.display = 'none';
+
+                    var minLen = parseInt(document.getElementById('PseMinLength').value, 10);
+                    if (isNaN(minLen) || minLen < 4 || minLen > 128) {
+                        errEl.textContent = 'Minimum length must be between 4 and 128.';
+                        errEl.style.display = 'block';
+                        return;
+                    }
+
+                    btn.disabled = true;
+
+                    // Fetch current config first to preserve ForcedResetUserIds.
+                    window.fetch(apiUrl('/Plugins/' + PLUGIN_GUID + '/Configuration'), {
+                        headers: authHeaders(),
+                    }).then(function (r) {
+                        return r.json();
+                    }).then(function (cfg) {
+                        cfg.MinLength = minLen;
+                        cfg.RequireUppercase = document.getElementById('PseRequireUppercase').checked;
+                        cfg.RequireLowercase = document.getElementById('PseRequireLowercase').checked;
+                        cfg.RequireDigit = document.getElementById('PseRequireDigit').checked;
+                        cfg.RequireSpecialCharacter = document.getElementById('PseRequireSpecial').checked;
+
+                        return window.fetch(apiUrl('/Plugins/' + PLUGIN_GUID + '/Configuration'), {
+                            method: 'POST',
+                            headers: authHeaders(),
+                            body: JSON.stringify(cfg),
+                        });
+                    }).then(function (r) {
+                        btn.disabled = false;
+                        if (r.ok || r.status === 204) {
+                            okEl.textContent = 'Policy saved.';
+                            okEl.style.display = 'block';
+                        } else {
+                            errEl.textContent = 'Failed to save policy (status ' + r.status + ').';
+                            errEl.style.display = 'block';
+                        }
+                    }).catch(function () {
+                        btn.disabled = false;
+                        errEl.textContent = 'A network error occurred. Please try again.';
+                        errEl.style.display = 'block';
+                    });
+                };
+
+                // ── Reset selected users ───────────────────────────────────
+
+                window.pseResetSelected = function () {
+                    var errEl = document.getElementById('PseResetError');
+                    var successEl = document.getElementById('PseResetSuccess');
+                    var btn = document.getElementById('PseResetSelectedBtn');
+                    errEl.style.display = 'none';
+                    successEl.style.display = 'none';
+
+                    var selected = [];
+                    document.querySelectorAll('.pse-user-cb:checked').forEach(function (cb) {
+                        selected.push(cb.value);
+                    });
+
+                    if (selected.length === 0) {
+                        errEl.textContent = 'Please select at least one user.';
+                        errEl.style.display = 'block';
+                        return;
+                    }
+
+                    var password = document.getElementById('PseAdminPassword').value;
+                    if (!password) {
+                        errEl.textContent = 'Please enter your password to confirm.';
+                        errEl.style.display = 'block';
+                        return;
+                    }
+
+                    btn.disabled = true;
+
+                    window.fetch(apiUrl(PLUGIN_API + '/ForceResetUsers'), {
+                        method: 'POST',
+                        headers: authHeaders(),
+                        body: JSON.stringify({ adminPassword: password, userIds: selected }),
+                    }).then(function (r) {
+                        btn.disabled = false;
+                        document.getElementById('PseAdminPassword').value = '';
+                        if (r.status === 204) {
+                            successEl.textContent = 'Done. ' + selected.length + ' user(s) will be required to set a new password on next login.';
+                            successEl.style.display = 'block';
+                            pseSelectAll(false);
+                        } else {
+                            return r.json().then(function (data) {
+                                errEl.textContent = data.message || 'An error occurred.';
+                                errEl.style.display = 'block';
+                            });
+                        }
+                    }).catch(function () {
+                        btn.disabled = false;
+                        errEl.textContent = 'A network error occurred. Please try again.';
+                        errEl.style.display = 'block';
+                    });
+                };
+
+                // ── Reset all non-admin users ──────────────────────────────
+
+                window.pseForceReset = function () {
+                    var password = document.getElementById('PseAdminPassword').value;
+                    var errEl = document.getElementById('PseResetError');
+                    var successEl = document.getElementById('PseResetSuccess');
+                    var btn = document.getElementById('PseForceResetBtn');
+
+                    errEl.style.display = 'none';
+                    successEl.style.display = 'none';
+
+                    if (!password) {
+                        errEl.textContent = 'Please enter your password to confirm.';
+                        errEl.style.display = 'block';
+                        return;
+                    }
+
+                    btn.disabled = true;
+
+                    window.fetch(apiUrl(PLUGIN_API + '/ForceReset'), {
+                        method: 'POST',
+                        headers: authHeaders(),
+                        body: JSON.stringify({ adminPassword: password }),
+                    }).then(function (r) {
+                        btn.disabled = false;
+                        document.getElementById('PseAdminPassword').value = '';
+                        if (r.status === 204) {
+                            successEl.textContent = 'Done. All non-admin users have been logged out and will be required to set a new password.';
+                            successEl.style.display = 'block';
+                            pseSelectAll(false);
+                        } else {
+                            return r.json().then(function (data) {
+                                errEl.textContent = data.message || 'An error occurred.';
+                                errEl.style.display = 'block';
+                            });
+                        }
+                    }).catch(function () {
+                        btn.disabled = false;
+                        errEl.textContent = 'A network error occurred. Please try again.';
+                        errEl.style.display = 'block';
+                    });
+                };
+            }());
+        </script>
+
+    </div>
+</body>
+</html>

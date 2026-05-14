@@ -1,5 +1,5 @@
-// <copyright file="PasswordStatusResponse.cs" company="npdib ltd">
-// Copyright (c) npdib ltd. All rights reserved.
+﻿// <copyright file="PasswordStatusResponse.cs" company="Nicholas Dibb-Fuller">
+// Copyright (c) Nicholas Dibb-Fuller. All rights reserved.
 // Licensed under the MIT License.
 // </copyright>
 
@@ -17,4 +17,10 @@ public sealed class PasswordStatusResponse
     /// </summary>
     [JsonPropertyName("resetRequired")]
     public bool ResetRequired { get; set; }
+
+    /// <summary>
+    /// Gets or sets the active password policy so the client can show accurate requirements.
+    /// </summary>
+    [JsonPropertyName("policy")]
+    public PasswordPolicyResponse Policy { get; set; } = new PasswordPolicyResponse();
 }

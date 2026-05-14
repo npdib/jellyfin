@@ -1,11 +1,12 @@
-// <copyright file="PasswordStrengthController.cs" company="npdib ltd">
-// Copyright (c) npdib ltd. All rights reserved.
+﻿// <copyright file="PasswordStrengthController.cs" company="Nicholas Dibb-Fuller">
+// Copyright (c) Nicholas Dibb-Fuller. All rights reserved.
 // Licensed under the MIT License.
 // </copyright>
 
 namespace Jellyfin.Plugin.Template.Api;
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -53,9 +54,9 @@ public class PasswordStrengthController : ControllerBase
     }
 
     /// <summary>
-    /// Returns whether the authenticated user is required to change their password.
+    /// Returns whether the authenticated user is required to change their password, plus the active policy.
     /// </summary>
-    /// <returns>A <see cref="PasswordStatusResponse"/> indicating reset requirement.</returns>
+    /// <returns>A <see cref="PasswordStatusResponse"/> indicating reset requirement and current policy.</returns>
     [HttpGet("Status")]
     [Authorize]
     public async Task<ActionResult<PasswordStatusResponse>> GetStatusAsync()
@@ -67,10 +68,21 @@ public class PasswordStrengthController : ControllerBase
         }
 
         var config = Plugin.Instance!.Configuration;
-        var resetRequired = config.ForcedResetUserIds.Contains(
+        var resetRequired = Plugin.IsUserFlaggedForReset(
             authInfo.UserId.ToString("N", CultureInfo.InvariantCulture));
 
-        return this.Ok(new PasswordStatusResponse { ResetRequired = resetRequired });
+        return this.Ok(new PasswordStatusResponse
+        {
+            ResetRequired = resetRequired,
+            Policy = new PasswordPolicyResponse
+            {
+                MinLength = config.MinLength,
+                RequireUppercase = config.RequireUppercase,
+                RequireLowercase = config.RequireLowercase,
+                RequireDigit = config.RequireDigit,
+                RequireSpecialCharacter = config.RequireSpecialCharacter,
+            },
+        });
     }
 
     /// <summary>
@@ -135,7 +147,8 @@ public class PasswordStrengthController : ControllerBase
             return this.BadRequest(new ErrorResponse("Current password is incorrect."));
         }
 
-        var validation = PasswordValidator.Validate(request.NewPassword);
+        var config = Plugin.Instance!.Configuration;
+        var validation = PasswordValidator.Validate(request.NewPassword, config);
         if (!validation.IsValid)
         {
             return this.BadRequest(new ErrorResponse(validation.Message!));
@@ -143,8 +156,7 @@ public class PasswordStrengthController : ControllerBase
 
         await this._userManager.ChangePassword(authInfo.User, request.NewPassword).ConfigureAwait(false);
 
-        var config = Plugin.Instance!.Configuration;
-        config.ForcedResetUserIds.Remove(userId.ToString("N", CultureInfo.InvariantCulture));
+        Plugin.RemoveForcedResetUser(userId.ToString("N", CultureInfo.InvariantCulture));
         Plugin.Instance.SaveConfiguration();
 
         PasswordAttemptTracker.ClearFailures(userId);
@@ -178,6 +190,16 @@ public class PasswordStrengthController : ControllerBase
             return this.BadRequest(new ErrorResponse("Admin password confirmation is required."));
         }
 
+        var adminId = authInfo.UserId;
+
+        if (PasswordAttemptTracker.IsBlocked(adminId))
+        {
+            this._logger.LogWarning("ForceReset rate limit exceeded for admin {AdminUserId}", adminId);
+            return this.StatusCode(
+                StatusCodes.Status429TooManyRequests,
+                new ErrorResponse("Too many failed attempts. Please wait 15 minutes before trying again."));
+        }
+
         // Re-authenticate the admin to confirm the destructive action.
         // AuthenticateUser may return null OR throw on failure depending on the Jellyfin version.
         try
@@ -193,7 +215,8 @@ public class PasswordStrengthController : ControllerBase
             {
                 this._logger.LogWarning(
                     "Admin re-authentication returned null for ForceReset — user {AdminUserId}",
-                    authInfo.UserId);
+                    adminId);
+                PasswordAttemptTracker.RecordFailure(adminId);
                 return this.Unauthorized(new ErrorResponse("Password confirmation failed."));
             }
         }
@@ -202,31 +225,128 @@ public class PasswordStrengthController : ControllerBase
             this._logger.LogWarning(
                 ex,
                 "Admin re-authentication failed for ForceReset — user {AdminUserId}",
-                authInfo.UserId);
+                adminId);
+            PasswordAttemptTracker.RecordFailure(adminId);
             return this.Unauthorized(new ErrorResponse("Password confirmation failed."));
         }
 
-        var config = Plugin.Instance!.Configuration;
-        config.ForcedResetUserIds.Clear();
+        PasswordAttemptTracker.ClearFailures(adminId);
 
         var nonAdminUsers = this._userManager.Users
             .Where(u => !u.HasPermission(PermissionKind.IsAdministrator))
             .ToList();
 
+        Plugin.SetForcedResetUsers(
+            nonAdminUsers.Select(u => u.Id.ToString("N", CultureInfo.InvariantCulture)));
+        Plugin.Instance!.SaveConfiguration();
+
         foreach (var user in nonAdminUsers)
         {
-            config.ForcedResetUserIds.Add(user.Id.ToString("N", CultureInfo.InvariantCulture));
-
             // Revoke all active sessions so users cannot continue without resetting their password.
             await this._sessionManager.RevokeUserTokens(user.Id, null).ConfigureAwait(false);
         }
 
-        Plugin.Instance.SaveConfiguration();
-
         this._logger.LogWarning(
             "Force password reset triggered by admin {AdminUserId} — {Count} user(s) affected",
-            authInfo.UserId,
+            adminId,
             nonAdminUsers.Count);
+
+        return this.NoContent();
+    }
+
+    /// <summary>
+    /// Flags specific users for a mandatory password reset and revokes their active sessions.
+    /// Requires admin role plus password re-confirmation.
+    /// </summary>
+    /// <remarks>
+    /// SECURITY: Re-authenticates the calling admin before acting. Admin users are never affected
+    /// regardless of which IDs are submitted. Rate-limited to 5 failures per 15 minutes.
+    /// </remarks>
+    /// <param name="request">Admin password and list of user IDs to reset.</param>
+    /// <returns>204 No Content on success; 400/401/429 on failure.</returns>
+    [HttpPost("ForceResetUsers")]
+    [Authorize(Policy = "RequiresElevation")]
+    public async Task<ActionResult> ForceResetUsersAsync([FromBody] ForceResetUsersRequest request)
+    {
+        var authInfo = await this._authorizationContext.GetAuthorizationInfo(this.Request).ConfigureAwait(false);
+        if (authInfo?.User is null)
+        {
+            return this.Unauthorized();
+        }
+
+        if (string.IsNullOrEmpty(request.AdminPassword))
+        {
+            return this.BadRequest(new ErrorResponse("Admin password confirmation is required."));
+        }
+
+        if (request.UserIds is null || request.UserIds.Count == 0)
+        {
+            return this.BadRequest(new ErrorResponse("At least one user ID must be provided."));
+        }
+
+        var adminId = authInfo.UserId;
+
+        if (PasswordAttemptTracker.IsBlocked(adminId))
+        {
+            this._logger.LogWarning("ForceResetUsers rate limit exceeded for admin {AdminUserId}", adminId);
+            return this.StatusCode(
+                StatusCodes.Status429TooManyRequests,
+                new ErrorResponse("Too many failed attempts. Please wait 15 minutes before trying again."));
+        }
+
+        try
+        {
+            var remoteIp = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+            var verified = await this._userManager.AuthenticateUser(
+                authInfo.User.Username,
+                request.AdminPassword,
+                remoteIp,
+                false).ConfigureAwait(false);
+
+            if (verified is null)
+            {
+                this._logger.LogWarning(
+                    "Admin re-authentication returned null for ForceResetUsers — user {AdminUserId}",
+                    adminId);
+                PasswordAttemptTracker.RecordFailure(adminId);
+                return this.Unauthorized(new ErrorResponse("Password confirmation failed."));
+            }
+        }
+        catch (Exception ex)
+        {
+            this._logger.LogWarning(
+                ex,
+                "Admin re-authentication failed for ForceResetUsers — user {AdminUserId}",
+                adminId);
+            PasswordAttemptTracker.RecordFailure(adminId);
+            return this.Unauthorized(new ErrorResponse("Password confirmation failed."));
+        }
+
+        PasswordAttemptTracker.ClearFailures(adminId);
+
+        // Only affect non-admin users regardless of what IDs were submitted.
+        var requestedIds = new HashSet<string>(request.UserIds, StringComparer.OrdinalIgnoreCase);
+        var targetUsers = this._userManager.Users
+            .Where(u => !u.HasPermission(PermissionKind.IsAdministrator)
+                        && requestedIds.Contains(u.Id.ToString("N", CultureInfo.InvariantCulture)))
+            .ToList();
+
+        foreach (var user in targetUsers)
+        {
+            Plugin.AddForcedResetUser(user.Id.ToString("N", CultureInfo.InvariantCulture));
+        }
+
+        Plugin.Instance!.SaveConfiguration();
+
+        foreach (var user in targetUsers)
+        {
+            await this._sessionManager.RevokeUserTokens(user.Id, null).ConfigureAwait(false);
+        }
+
+        this._logger.LogWarning(
+            "Targeted password reset triggered by admin {AdminUserId} — {Count} user(s) affected",
+            adminId,
+            targetUsers.Count);
 
         return this.NoContent();
     }
