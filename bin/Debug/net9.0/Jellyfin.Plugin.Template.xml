@@ -4,20 +4,111 @@
         <name>Jellyfin.Plugin.Template</name>
     </assembly>
     <members>
-        <member name="T:Jellyfin.Plugin.Template.Configuration.SomeOptions">
+        <member name="T:Jellyfin.Plugin.Template.Api.Models.ChangePasswordRequest">
             <summary>
-            The configuration options.
+            Request body for the password change endpoint.
+            Intentionally a class (not a record) to prevent auto-generated ToString() from exposing passwords.
             </summary>
         </member>
-        <member name="F:Jellyfin.Plugin.Template.Configuration.SomeOptions.OneOption">
+        <member name="P:Jellyfin.Plugin.Template.Api.Models.ChangePasswordRequest.CurrentPassword">
             <summary>
-            Option one.
+            Gets or sets the user's current password for verification.
             </summary>
         </member>
-        <member name="F:Jellyfin.Plugin.Template.Configuration.SomeOptions.AnotherOption">
+        <member name="P:Jellyfin.Plugin.Template.Api.Models.ChangePasswordRequest.NewPassword">
             <summary>
-            Second option.
+            Gets or sets the new password to set.
             </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Template.Api.Models.ErrorResponse">
+            <summary>
+            A simple error response body containing a human-readable message.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.Api.Models.ErrorResponse.#ctor(System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Template.Api.Models.ErrorResponse"/> class.
+            </summary>
+            <param name="message">The error message to return to the client.</param>
+        </member>
+        <member name="P:Jellyfin.Plugin.Template.Api.Models.ErrorResponse.Message">
+            <summary>
+            Gets the error message.
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Template.Api.Models.ForceResetRequest">
+            <summary>
+            Request body for the admin force-reset endpoint.
+            Intentionally a class (not a record) to prevent auto-generated ToString() from exposing the password.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Template.Api.Models.ForceResetRequest.AdminPassword">
+            <summary>
+            Gets or sets the admin's current password, used to re-authenticate before triggering the reset.
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Template.Api.Models.PasswordStatusResponse">
+            <summary>
+            Response from the password status endpoint.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Template.Api.Models.PasswordStatusResponse.ResetRequired">
+            <summary>
+            Gets or sets a value indicating whether the authenticated user must change their password.
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Template.Api.PasswordStrengthController">
+            <summary>
+            API controller for password strength enforcement operations.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.Api.PasswordStrengthController.#ctor(MediaBrowser.Controller.Net.IAuthorizationContext,MediaBrowser.Controller.Library.IUserManager,MediaBrowser.Controller.Session.ISessionManager,Microsoft.Extensions.Logging.ILogger{Jellyfin.Plugin.Template.Api.PasswordStrengthController})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Template.Api.PasswordStrengthController"/> class.
+            </summary>
+            <param name="authorizationContext">Jellyfin authorization context.</param>
+            <param name="userManager">Jellyfin user manager.</param>
+            <param name="sessionManager">Jellyfin session manager.</param>
+            <param name="logger">Logger instance.</param>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.Api.PasswordStrengthController.GetStatusAsync">
+            <summary>
+            Returns whether the authenticated user is required to change their password.
+            </summary>
+            <returns>A <see cref="T:Jellyfin.Plugin.Template.Api.Models.PasswordStatusResponse"/> indicating reset requirement.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.Api.PasswordStrengthController.ChangePasswordAsync(Jellyfin.Plugin.Template.Api.Models.ChangePasswordRequest)">
+            <summary>
+            Changes the authenticated user's password after verifying their current password.
+            The new password must meet the strength policy.
+            </summary>
+            <remarks>
+            SECURITY: Verifies the current password before accepting any change, protecting against
+            stolen session tokens being used to hijack accounts. Rate-limited to 5 failures per 15 minutes.
+            Request bodies are never logged.
+            </remarks>
+            <param name="request">The password change request.</param>
+            <returns>204 No Content on success; 400/401/429 on failure.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.Api.PasswordStrengthController.ForceResetAsync(Jellyfin.Plugin.Template.Api.Models.ForceResetRequest)">
+            <summary>
+            Flags all non-admin users for a mandatory password reset and revokes their active sessions.
+            Requires admin role plus password re-confirmation.
+            </summary>
+            <remarks>
+            SECURITY: Re-authenticates the calling admin before acting, preventing misuse of an
+            already-authenticated admin session (e.g. unattended terminal). All affected sessions are
+            immediately revoked so users cannot continue without resetting their password.
+            </remarks>
+            <param name="request">Admin password for re-authentication.</param>
+            <returns>204 No Content on success; 401 if re-authentication fails.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.Api.PasswordStrengthController.GetEnforcementScript">
+            <summary>
+            Serves the client-side enforcement script as a static JavaScript file.
+            This endpoint is intentionally anonymous — the script contains no sensitive data.
+            </summary>
+            <returns>The enforcement JavaScript file.</returns>
         </member>
         <member name="T:Jellyfin.Plugin.Template.Configuration.PluginConfiguration">
             <summary>
@@ -29,25 +120,79 @@
             Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Template.Configuration.PluginConfiguration"/> class.
             </summary>
         </member>
-        <member name="P:Jellyfin.Plugin.Template.Configuration.PluginConfiguration.TrueFalseSetting">
+        <member name="P:Jellyfin.Plugin.Template.Configuration.PluginConfiguration.ForcedResetUserIds">
             <summary>
-            Gets or sets a value indicating whether some true or false setting is enabled..
+            Gets or sets the list of user IDs (format N, no hyphens) that must reset their password on next login.
             </summary>
         </member>
-        <member name="P:Jellyfin.Plugin.Template.Configuration.PluginConfiguration.AnInteger">
+        <member name="T:Jellyfin.Plugin.Template.CustomJsInstaller">
             <summary>
-            Gets or sets an integer setting.
+            Hosted service that runs at server startup and ensures the enforcement
+            loader is present in the Jellyfin web root's custom.js.
+            This removes the need for any manual file editing on the server.
             </summary>
         </member>
-        <member name="P:Jellyfin.Plugin.Template.Configuration.PluginConfiguration.AString">
+        <member name="F:Jellyfin.Plugin.Template.CustomJsInstaller.Marker">
             <summary>
-            Gets or sets a string setting.
+            Unique marker written into custom.js so duplicate installs are detected.
             </summary>
         </member>
-        <member name="P:Jellyfin.Plugin.Template.Configuration.PluginConfiguration.Options">
+        <member name="F:Jellyfin.Plugin.Template.CustomJsInstaller.Loader">
             <summary>
-            Gets or sets an enum option.
+            The loader appended to (or written into) custom.js.
+            Uses ApiClient.serverAddress() when available, falls back to
+            window.location.origin so it works regardless of reverse-proxy base path.
             </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.CustomJsInstaller.#ctor(MediaBrowser.Common.Configuration.IApplicationPaths,Microsoft.Extensions.Logging.ILogger{Jellyfin.Plugin.Template.CustomJsInstaller})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Template.CustomJsInstaller"/> class.
+            </summary>
+            <param name="applicationPaths">Provides the server's directory paths.</param>
+            <param name="logger">Logger instance.</param>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.CustomJsInstaller.StartAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.CustomJsInstaller.StopAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:Jellyfin.Plugin.Template.PasswordAttemptTracker">
+            <summary>
+            Thread-safe in-memory tracker for failed password change attempts.
+            Enforces a lockout after repeated failures to limit brute-force attacks.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.PasswordAttemptTracker.IsBlocked(System.Guid)">
+            <summary>
+            Returns true if the user has exceeded the allowed failure count within the lockout window.
+            </summary>
+            <param name="userId">The user's unique identifier.</param>
+            <returns>True if the user is currently blocked.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.PasswordAttemptTracker.RecordFailure(System.Guid)">
+            <summary>
+            Records a failed attempt for a user, starting a new window if the previous one has expired.
+            </summary>
+            <param name="userId">The user's unique identifier.</param>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.PasswordAttemptTracker.ClearFailures(System.Guid)">
+            <summary>
+            Clears the failure record for a user after a successful password change.
+            </summary>
+            <param name="userId">The user's unique identifier.</param>
+        </member>
+        <member name="T:Jellyfin.Plugin.Template.PasswordValidator">
+            <summary>
+            Validates password strength against the enforcement policy.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.PasswordValidator.Validate(System.String)">
+            <summary>
+            Validates that a password meets the minimum strength requirements.
+            </summary>
+            <param name="password">The plaintext password to validate.</param>
+            <returns>A <see cref="T:Jellyfin.Plugin.Template.ValidationResult"/> indicating whether the password is valid.</returns>
         </member>
         <member name="T:Jellyfin.Plugin.Template.Plugin">
             <summary>
@@ -74,6 +219,37 @@
         </member>
         <member name="M:Jellyfin.Plugin.Template.Plugin.GetPages">
             <inheritdoc />
+        </member>
+        <member name="T:Jellyfin.Plugin.Template.PluginServiceRegistrator">
+            <summary>
+            Registers plugin services with Jellyfin's dependency injection container.
+            Jellyfin discovers this class automatically — no manual registration required.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.PluginServiceRegistrator.RegisterServices(Microsoft.Extensions.DependencyInjection.IServiceCollection,MediaBrowser.Controller.IServerApplicationHost)">
+            <inheritdoc />
+        </member>
+        <member name="T:Jellyfin.Plugin.Template.ValidationResult">
+            <summary>
+            Represents the outcome of a password strength validation.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Template.ValidationResult.#ctor(System.Boolean,System.String)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Template.ValidationResult"/> class.
+            </summary>
+            <param name="isValid">Whether the password passed validation.</param>
+            <param name="message">The failure message, or null on success.</param>
+        </member>
+        <member name="P:Jellyfin.Plugin.Template.ValidationResult.IsValid">
+            <summary>
+            Gets a value indicating whether the password passed all rules.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Template.ValidationResult.Message">
+            <summary>
+            Gets the human-readable failure reason, or null if validation passed.
+            </summary>
         </member>
     </members>
 </doc>

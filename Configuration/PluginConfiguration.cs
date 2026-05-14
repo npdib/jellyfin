@@ -1,27 +1,12 @@
-// <copyright file="PluginConfiguration.cs" company="Exobotics Ltd">
-// Copyright (c) Exobotics Ltd. All rights reserved.
+// <copyright file="PluginConfiguration.cs" company="npdib ltd">
+// Copyright (c) npdib ltd. All rights reserved.
 // Licensed under the MIT License.
 // </copyright>
 
 namespace Jellyfin.Plugin.Template.Configuration;
 
+using System.Collections.Generic;
 using MediaBrowser.Model.Plugins;
-
-/// <summary>
-/// The configuration options.
-/// </summary>
-public enum SomeOptions
-{
-    /// <summary>
-    /// Option one.
-    /// </summary>
-    OneOption,
-
-    /// <summary>
-    /// Second option.
-    /// </summary>
-    AnotherOption,
-}
 
 /// <summary>
 /// Plugin configuration.
@@ -33,30 +18,11 @@ public class PluginConfiguration : BasePluginConfiguration
     /// </summary>
     public PluginConfiguration()
     {
-        // set default options here
-        this.Options = SomeOptions.AnotherOption;
-        this.TrueFalseSetting = true;
-        this.AnInteger = 2;
-        this.AString = "string";
+        this.ForcedResetUserIds = new List<string>();
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether some true or false setting is enabled..
+    /// Gets or sets the list of user IDs (format N, no hyphens) that must reset their password on next login.
     /// </summary>
-    public bool TrueFalseSetting { get; set; }
-
-    /// <summary>
-    /// Gets or sets an integer setting.
-    /// </summary>
-    public int AnInteger { get; set; }
-
-    /// <summary>
-    /// Gets or sets a string setting.
-    /// </summary>
-    public string AString { get; set; }
-
-    /// <summary>
-    /// Gets or sets an enum option.
-    /// </summary>
-    public SomeOptions Options { get; set; }
+    public List<string> ForcedResetUserIds { get; set; }
 }

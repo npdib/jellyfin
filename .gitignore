@@ -1,2 +1,5 @@
 .claude
 obj
+bin
+sandbox/
+dist/

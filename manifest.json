@@ -1,0 +1,20 @@
+[
+  {
+    "category": "Security",
+    "guid": "5a2d0001-12cf-4444-b2e3-e2f8e1f54e34",
+    "name": "Password Strength Enforcement",
+    "description": "Enforces strong password policies for all Jellyfin users. Admins can trigger a mandatory password reset that logs out all non-admin users and requires them to set a new password meeting minimum strength requirements on next login.",
+    "overview": "Enforces strong passwords (min 8 chars, uppercase, lowercase, number). Includes an admin panel to force password resets with re-authentication confirmation.",
+    "owner": "npdib",
+    "versions": [
+      {
+        "version": "1.0.0.0",
+        "changelog": "Initial release — force reset button, strength validation, post-login enforcement overlay.",
+        "targetAbi": "10.9.0.0",
+        "sourceUrl": "https://github.com/YOUR_USERNAME/YOUR_REPO/releases/download/v1.0.0/Jellyfin.Plugin.Template_1.0.0.0.zip",
+        "checksum": "REPLACE_WITH_MD5_OF_ZIP",
+        "timestamp": "2026-05-14T00:00:00Z"
+      }
+    ]
+  }
+]

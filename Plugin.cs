@@ -1,5 +1,5 @@
-// <copyright file="Plugin.cs" company="Exobotics Ltd">
-// Copyright (c) Exobotics Ltd. All rights reserved.
+// <copyright file="Plugin.cs" company="npdib ltd">
+// Copyright (c) npdib ltd. All rights reserved.
 // Licensed under the MIT License.
 // </copyright>
 

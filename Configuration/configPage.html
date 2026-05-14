@@ -2,78 +2,162 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Template</title>
+    <title>Password Strength Enforcement</title>
 </head>
 <body>
-    <div id="TemplateConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <div id="PseConfigPage"
+         data-role="page"
+         class="page type-interior pluginConfigurationPage"
+         data-require="emby-input,emby-button">
+
         <div data-role="content">
             <div class="content-primary">
-                <form id="TemplateConfigForm">
-                    <div class="selectContainer">
-                        <label class="selectLabel" for="Options">Several Options</label>
-                        <select is="emby-select" id="Options" name="Options" class="emby-select-withcolor emby-select">
-                            <option id="optOneOption" value="OneOption">One Option</option>
-                            <option id="optAnotherOption" value="AnotherOption">Another Option</option>
-                        </select>
+
+                <h2 style="margin-top:0">Password Strength Enforcement</h2>
+
+                <!-- ── Setup Instructions ──────────────────────────────── -->
+                <div class="verticalSection" style="margin-bottom:2em">
+                    <h3>Setup — custom.js</h3>
+                    <p style="color:#aaa;font-size:0.9em;line-height:1.6">
+                        The enforcement overlay requires a one-line loader in your Jellyfin web
+                        <strong>custom.js</strong> file. Place it at:<br>
+                        <code>/usr/share/jellyfin/web/custom.js</code>
+                        (or the equivalent path for your installation).<br><br>
+                        Copy the snippet below into that file. If the file already exists,
+                        append it on a new line.
+                    </p>
+                    <pre id="PseSnippet"
+                         style="background:#111;color:#ccc;padding:1em;border-radius:4px;font-size:0.85em;overflow-x:auto;white-space:pre-wrap;word-break:break-all"></pre>
+                    <button is="emby-button"
+                            class="raised emby-button"
+                            type="button"
+                            onclick="pseCopySnippet()"
+                            style="margin-top:0.5em">
+                        <span>Copy to Clipboard</span>
+                    </button>
+                    <div id="PseCopyStatus"
+                         style="font-size:0.85em;color:#4caf50;margin-top:0.4em;display:none">
+                        Copied!
                     </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="AnInteger">An Integer</label>
-                        <input id="AnInteger" name="AnInteger" type="number" is="emby-input" min="0" />
-                        <div class="fieldDescription">A Description</div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="TrueFalseSetting" name="TrueFalseCheckBox" type="checkbox" is="emby-checkbox" />
-                            <span>A Checkbox</span>
+                </div>
+
+                <!-- ── Force Reset ──────────────────────────────────────── -->
+                <div class="verticalSection">
+                    <h3>Force Password Reset</h3>
+                    <p style="color:#aaa;font-size:0.9em;line-height:1.6">
+                        Immediately logs out <strong>all non-admin users</strong> and requires
+                        them to set a new password meeting the strength policy on their next login.<br><br>
+                        You must confirm your own password before this action takes effect.
+                    </p>
+
+                    <div class="inputContainer" style="max-width:320px">
+                        <label class="inputLabel inputLabelUnfocused" for="PseAdminPassword">
+                            Your Password (confirmation)
                         </label>
+                        <input id="PseAdminPassword"
+                               type="password"
+                               is="emby-input"
+                               autocomplete="current-password" />
                     </div>
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="AString">A String</label>
-                        <input id="AString" name="AString" type="text" is="emby-input" />
-                        <div class="fieldDescription">Another Description</div>
+
+                    <div id="PseResetError"
+                         style="color:#ff6b6b;font-size:0.9em;margin:0.5em 0;display:none">
                     </div>
-                    <div>
-                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
-                            <span>Save</span>
-                        </button>
+                    <div id="PseResetSuccess"
+                         style="color:#4caf50;font-size:0.9em;margin:0.5em 0;display:none">
                     </div>
-                </form>
+
+                    <button is="emby-button"
+                            id="PseForceResetBtn"
+                            class="raised emby-button"
+                            type="button"
+                            style="background:#c0392b;color:#fff;margin-top:0.5em"
+                            onclick="pseForceReset()">
+                        <span>Force Password Reset for All Users</span>
+                    </button>
+                </div>
+
             </div>
         </div>
+
         <script type="text/javascript">
-            var TemplateConfig = {
-                pluginUniqueId: 'eb5d7894-8eef-4b36-aa6f-5d124e828ce1'
-            };
+            (function () {
+                var PLUGIN_API = '/PasswordStrength';
 
-            document.querySelector('#TemplateConfigPage')
-                .addEventListener('pageshow', function() {
-                    Dashboard.showLoadingMsg();
-                    ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
-                        document.querySelector('#Options').value = config.Options;
-                        document.querySelector('#AnInteger').value = config.AnInteger;
-                        document.querySelector('#TrueFalseSetting').checked = config.TrueFalseSetting;
-                        document.querySelector('#AString').value = config.AString;
-                        Dashboard.hideLoadingMsg();
+                // Build the custom.js snippet using the current server address
+                var serverUrl = ApiClient.serverAddress().replace(/\/$/, '');
+                var snippetEl = document.getElementById('PseSnippet');
+                var snippet = [
+                    '// Password Strength Enforcement plugin loader',
+                    '(function () {',
+                    '    var s = document.createElement(\'script\');',
+                    '    s.src = \'' + serverUrl + PLUGIN_API + '/enforcement.js\';',
+                    '    s.defer = true;',
+                    '    document.head.appendChild(s);',
+                    '}());',
+                ].join('\n');
+                snippetEl.textContent = snippet;
+
+                window.pseCopySnippet = function () {
+                    navigator.clipboard.writeText(snippet).then(function () {
+                        var status = document.getElementById('PseCopyStatus');
+                        status.style.display = 'block';
+                        window.setTimeout(function () { status.style.display = 'none'; }, 2500);
+                    }).catch(function () {
+                        // Fallback for older browsers
+                        snippetEl.select && snippetEl.select();
                     });
-                });
+                };
 
-            document.querySelector('#TemplateConfigForm')
-                .addEventListener('submit', function(e) {
-                Dashboard.showLoadingMsg();
-                ApiClient.getPluginConfiguration(TemplateConfig.pluginUniqueId).then(function (config) {
-                    config.Options = document.querySelector('#Options').value;
-                    config.AnInteger = document.querySelector('#AnInteger').value;
-                    config.TrueFalseSetting = document.querySelector('#TrueFalseSetting').checked;
-                    config.AString = document.querySelector('#AString').value;
-                    ApiClient.updatePluginConfiguration(TemplateConfig.pluginUniqueId, config).then(function (result) {
-                        Dashboard.processPluginConfigurationUpdateResult(result);
-                    });
-                });
+                window.pseForceReset = function () {
+                    var password = document.getElementById('PseAdminPassword').value;
+                    var errorEl = document.getElementById('PseResetError');
+                    var successEl = document.getElementById('PseResetSuccess');
+                    var btn = document.getElementById('PseForceResetBtn');
 
-                e.preventDefault();
-                return false;
-            });
+                    errorEl.style.display = 'none';
+                    successEl.style.display = 'none';
+
+                    if (!password) {
+                        errorEl.textContent = 'Please enter your password to confirm.';
+                        errorEl.style.display = 'block';
+                        return;
+                    }
+
+                    btn.disabled = true;
+
+                    window.fetch(ApiClient.getUrl(PLUGIN_API + '/ForceReset'), {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Emby-Token': ApiClient.accessToken(),
+                        },
+                        body: JSON.stringify({ adminPassword: password }),
+                    })
+                        .then(function (r) {
+                            btn.disabled = false;
+                            document.getElementById('PseAdminPassword').value = '';
+
+                            if (r.status === 204) {
+                                successEl.textContent = 'Done. All non-admin users have been logged out and will be required to set a new password.';
+                                successEl.style.display = 'block';
+                            } else {
+                                return r.json().then(function (data) {
+                                    errorEl.textContent = data.message || 'An error occurred.';
+                                    errorEl.style.display = 'block';
+                                });
+                            }
+                        })
+                        .catch(function () {
+                            btn.disabled = false;
+                            errorEl.textContent = 'A network error occurred. Please try again.';
+                            errorEl.style.display = 'block';
+                        });
+                };
+            }());
         </script>
+
     </div>
 </body>
 </html>
