@@ -5,6 +5,8 @@
 
 namespace Jellyfin.Plugin.Template.Api.Models;
 
+using System.Text.Json.Serialization;
+
 /// <summary>
 /// A simple error response body containing a human-readable message.
 /// </summary>
@@ -22,5 +24,6 @@ public sealed class ErrorResponse
     /// <summary>
     /// Gets the error message.
     /// </summary>
+    [JsonPropertyName("message")]
     public string Message { get; }
 }

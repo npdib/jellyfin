@@ -259,19 +259,30 @@
         // Check on every page/view transition within the Jellyfin SPA
         document.addEventListener('viewshow', checkStatus);
 
-        // Check when the user logs in
+        // Check when the user logs in or switches
         if (typeof Events !== 'undefined') {
             Events.on(window, 'userswitched', checkStatus);
         }
 
-        // Initial check if the user is already logged in when this script loads
-        checkStatus();
+        // Poll until we detect a logged-in session, then check once and stop.
+        // This catches login events that don't surface via viewshow/userswitched.
+        var pollCount = 0;
+        var poll = setInterval(function () {
+            pollCount += 1;
+            if (pollCount > 300) {
+                clearInterval(poll);
+                return;
+            }
+            if (isLoggedIn()) {
+                clearInterval(poll);
+                checkStatus();
+            }
+        }, 1000);
     }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
-        // Small delay to allow Jellyfin's app to finish initialising ApiClient
-        window.setTimeout(init, 300);
+        window.setTimeout(init, 500);
     }
 }());
