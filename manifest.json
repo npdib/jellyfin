@@ -8,6 +8,14 @@
     "owner": "npdib",
     "versions": [
       {
+        "version": "0.5.1",
+        "changelog": "- .gitignore update\n- feat: src/ reorganisation, configurable policy, targeted reset, security fixes",
+        "targetAbi": "10.9.0.0",
+        "sourceUrl": "https://github.com/npdib/jellyfin/releases/download/v0.5.1/Jellyfin.Plugin.Template_0.5.1.zip",
+        "checksum": "7F4723329B0BE82D6E46FF633EBBFFF8",
+        "timestamp": "2026-05-14T15:06:38Z"
+      },
+      {
         "version": "0.5.0",
         "changelog": "- feat: src/ reorganisation, configurable policy, targeted reset, security fixes\n- fix: use char overload of StartsWith to satisfy CA1865\n- fix: guard InjectLoader against non-HTML files matched by regex pattern\n- fix: lowercase resetRequired JSON property so JS overlay triggers correctly",
         "targetAbi": "10.9.0.0",
