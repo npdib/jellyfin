@@ -1,4 +1,4 @@
-﻿// <copyright file="PasswordAttemptTracker.cs" company="Nicholas Dibb-Fuller">
+// <copyright file="PasswordAttemptTracker.cs" company="Nicholas Dibb-Fuller">
 // Copyright (c) Nicholas Dibb-Fuller. All rights reserved.
 // Licensed under the MIT License.
 // </copyright>
@@ -7,6 +7,7 @@ namespace Jellyfin.Plugin.Template;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Thread-safe in-memory tracker for failed password change attempts.
@@ -46,12 +47,15 @@ internal static class PasswordAttemptTracker
 
     /// <summary>
     /// Records a failed attempt for a user, starting a new window if the previous one has expired.
+    /// Also trims all expired entries to prevent unbounded memory growth.
     /// </summary>
     /// <param name="userId">The user's unique identifier.</param>
     internal static void RecordFailure(Guid userId)
     {
         lock (SyncRoot)
         {
+            TrimExpired();
+
             if (Attempts.TryGetValue(userId, out var entry)
                 && DateTime.UtcNow - entry.WindowStart <= LockoutWindow)
             {
@@ -73,6 +77,20 @@ internal static class PasswordAttemptTracker
         lock (SyncRoot)
         {
             Attempts.Remove(userId);
+        }
+    }
+
+    // Removes all entries whose lockout window has expired. Must be called while holding SyncRoot.
+    private static void TrimExpired()
+    {
+        var cutoff = DateTime.UtcNow - LockoutWindow;
+        var expired = Attempts
+            .Where(kvp => kvp.Value.WindowStart < cutoff)
+            .Select(kvp => kvp.Key)
+            .ToList();
+        foreach (var key in expired)
+        {
+            Attempts.Remove(key);
         }
     }
 }

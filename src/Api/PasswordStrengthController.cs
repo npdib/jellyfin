@@ -1,4 +1,4 @@
-﻿// <copyright file="PasswordStrengthController.cs" company="Nicholas Dibb-Fuller">
+// <copyright file="PasswordStrengthController.cs" company="Nicholas Dibb-Fuller">
 // Copyright (c) Nicholas Dibb-Fuller. All rights reserved.
 // Licensed under the MIT License.
 // </copyright>
@@ -61,7 +61,15 @@ public class PasswordStrengthController : ControllerBase
     [Authorize(Policy = "RequiresElevation")]
     public ActionResult<PluginConfigResponse> GetConfig()
     {
-        var config = Plugin.Instance!.Configuration;
+        var instance = Plugin.Instance;
+        if (instance is null)
+        {
+            return this.StatusCode(StatusCodes.Status503ServiceUnavailable, new ErrorResponse("Plugin not ready."));
+        }
+
+        this.Response.Headers.CacheControl = "no-store";
+
+        var config = instance.Configuration;
         return this.Ok(new PluginConfigResponse
         {
             FileTransformationInstalled = Plugin.IsFileTransformationAvailable,
@@ -85,18 +93,24 @@ public class PasswordStrengthController : ControllerBase
     [Authorize(Policy = "RequiresElevation")]
     public ActionResult UpdatePolicy([FromBody] PolicyUpdateRequest request)
     {
+        var instance = Plugin.Instance;
+        if (instance is null)
+        {
+            return this.StatusCode(StatusCodes.Status503ServiceUnavailable, new ErrorResponse("Plugin not ready."));
+        }
+
         if (request.MinLength < 4 || request.MinLength > 128)
         {
             return this.BadRequest(new ErrorResponse("Minimum length must be between 4 and 128."));
         }
 
-        var config = Plugin.Instance!.Configuration;
+        var config = instance.Configuration;
         config.MinLength = request.MinLength;
         config.RequireUppercase = request.RequireUppercase;
         config.RequireLowercase = request.RequireLowercase;
         config.RequireDigit = request.RequireDigit;
         config.RequireSpecialCharacter = request.RequireSpecialCharacter;
-        Plugin.Instance.SaveConfiguration();
+        instance.SaveConfiguration();
 
         this._logger.LogInformation(
             "Password policy updated — MinLength={MinLength} Upper={Upper} Lower={Lower} Digit={Digit} Special={Special}",
@@ -117,13 +131,21 @@ public class PasswordStrengthController : ControllerBase
     [Authorize]
     public async Task<ActionResult<PasswordStatusResponse>> GetStatusAsync()
     {
+        var instance = Plugin.Instance;
+        if (instance is null)
+        {
+            return this.StatusCode(StatusCodes.Status503ServiceUnavailable, new ErrorResponse("Plugin not ready."));
+        }
+
         var authInfo = await this._authorizationContext.GetAuthorizationInfo(this.Request).ConfigureAwait(false);
         if (authInfo?.User is null)
         {
             return this.Unauthorized();
         }
 
-        var config = Plugin.Instance!.Configuration;
+        this.Response.Headers.CacheControl = "no-store";
+
+        var config = instance.Configuration;
         var resetRequired = Plugin.IsUserFlaggedForReset(
             authInfo.UserId.ToString("N", CultureInfo.InvariantCulture));
 
@@ -156,6 +178,12 @@ public class PasswordStrengthController : ControllerBase
     [Authorize]
     public async Task<ActionResult> ChangePasswordAsync([FromBody] ChangePasswordRequest request)
     {
+        var instance = Plugin.Instance;
+        if (instance is null)
+        {
+            return this.StatusCode(StatusCodes.Status503ServiceUnavailable, new ErrorResponse("Plugin not ready."));
+        }
+
         var authInfo = await this._authorizationContext.GetAuthorizationInfo(this.Request).ConfigureAwait(false);
         if (authInfo?.User is null)
         {
@@ -203,7 +231,7 @@ public class PasswordStrengthController : ControllerBase
             return this.BadRequest(new ErrorResponse("Current password is incorrect."));
         }
 
-        var config = Plugin.Instance!.Configuration;
+        var config = instance.Configuration;
         var validation = PasswordValidator.Validate(request.NewPassword, config);
         if (!validation.IsValid)
         {
@@ -213,7 +241,7 @@ public class PasswordStrengthController : ControllerBase
         await this._userManager.ChangePassword(authInfo.User, request.NewPassword).ConfigureAwait(false);
 
         Plugin.RemoveForcedResetUser(userId.ToString("N", CultureInfo.InvariantCulture));
-        Plugin.Instance.SaveConfiguration();
+        instance.SaveConfiguration();
 
         PasswordAttemptTracker.ClearFailures(userId);
         this._logger.LogInformation("Password changed successfully for user {UserId}", userId);
@@ -235,6 +263,12 @@ public class PasswordStrengthController : ControllerBase
     [Authorize(Policy = "RequiresElevation")]
     public async Task<ActionResult> ForceResetAsync([FromBody] ForceResetRequest request)
     {
+        var instance = Plugin.Instance;
+        if (instance is null)
+        {
+            return this.StatusCode(StatusCodes.Status503ServiceUnavailable, new ErrorResponse("Plugin not ready."));
+        }
+
         var authInfo = await this._authorizationContext.GetAuthorizationInfo(this.Request).ConfigureAwait(false);
         if (authInfo?.User is null)
         {
@@ -294,7 +328,7 @@ public class PasswordStrengthController : ControllerBase
 
         Plugin.SetForcedResetUsers(
             nonAdminUsers.Select(u => u.Id.ToString("N", CultureInfo.InvariantCulture)));
-        Plugin.Instance!.SaveConfiguration();
+        instance.SaveConfiguration();
 
         foreach (var user in nonAdminUsers)
         {
@@ -324,6 +358,12 @@ public class PasswordStrengthController : ControllerBase
     [Authorize(Policy = "RequiresElevation")]
     public async Task<ActionResult> ForceResetUsersAsync([FromBody] ForceResetUsersRequest request)
     {
+        var instance = Plugin.Instance;
+        if (instance is null)
+        {
+            return this.StatusCode(StatusCodes.Status503ServiceUnavailable, new ErrorResponse("Plugin not ready."));
+        }
+
         var authInfo = await this._authorizationContext.GetAuthorizationInfo(this.Request).ConfigureAwait(false);
         if (authInfo?.User is null)
         {
@@ -392,7 +432,7 @@ public class PasswordStrengthController : ControllerBase
             Plugin.AddForcedResetUser(user.Id.ToString("N", CultureInfo.InvariantCulture));
         }
 
-        Plugin.Instance!.SaveConfiguration();
+        instance.SaveConfiguration();
 
         foreach (var user in targetUsers)
         {
@@ -424,6 +464,7 @@ public class PasswordStrengthController : ControllerBase
             return this.NotFound();
         }
 
+        this.Response.Headers.CacheControl = "public, max-age=3600";
         using var reader = new StreamReader(stream);
         return this.Content(reader.ReadToEnd(), "application/javascript; charset=utf-8");
     }
