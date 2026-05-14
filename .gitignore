@@ -2,3 +2,4 @@ obj/
 bin/
 sandbox/
 dist/
+.claude/

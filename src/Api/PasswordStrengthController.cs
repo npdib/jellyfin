@@ -54,6 +54,62 @@ public class PasswordStrengthController : ControllerBase
     }
 
     /// <summary>
+    /// Returns the active password policy and runtime environment information for the admin configuration page.
+    /// </summary>
+    /// <returns>A <see cref="PluginConfigResponse"/> containing the current policy and plugin status.</returns>
+    [HttpGet("Config")]
+    [Authorize(Policy = "RequiresElevation")]
+    public ActionResult<PluginConfigResponse> GetConfig()
+    {
+        var config = Plugin.Instance!.Configuration;
+        return this.Ok(new PluginConfigResponse
+        {
+            FileTransformationInstalled = Plugin.IsFileTransformationAvailable,
+            Policy = new PasswordPolicyResponse
+            {
+                MinLength = config.MinLength,
+                RequireUppercase = config.RequireUppercase,
+                RequireLowercase = config.RequireLowercase,
+                RequireDigit = config.RequireDigit,
+                RequireSpecialCharacter = config.RequireSpecialCharacter,
+            },
+        });
+    }
+
+    /// <summary>
+    /// Updates the active password policy. Changes take effect immediately for all subsequent password changes.
+    /// </summary>
+    /// <param name="request">The new policy settings.</param>
+    /// <returns>204 No Content on success.</returns>
+    [HttpPost("Policy")]
+    [Authorize(Policy = "RequiresElevation")]
+    public ActionResult UpdatePolicy([FromBody] PolicyUpdateRequest request)
+    {
+        if (request.MinLength < 4 || request.MinLength > 128)
+        {
+            return this.BadRequest(new ErrorResponse("Minimum length must be between 4 and 128."));
+        }
+
+        var config = Plugin.Instance!.Configuration;
+        config.MinLength = request.MinLength;
+        config.RequireUppercase = request.RequireUppercase;
+        config.RequireLowercase = request.RequireLowercase;
+        config.RequireDigit = request.RequireDigit;
+        config.RequireSpecialCharacter = request.RequireSpecialCharacter;
+        Plugin.Instance.SaveConfiguration();
+
+        this._logger.LogInformation(
+            "Password policy updated — MinLength={MinLength} Upper={Upper} Lower={Lower} Digit={Digit} Special={Special}",
+            config.MinLength,
+            config.RequireUppercase,
+            config.RequireLowercase,
+            config.RequireDigit,
+            config.RequireSpecialCharacter);
+
+        return this.NoContent();
+    }
+
+    /// <summary>
     /// Returns whether the authenticated user is required to change their password, plus the active policy.
     /// </summary>
     /// <returns>A <see cref="PasswordStatusResponse"/> indicating reset requirement and current policy.</returns>

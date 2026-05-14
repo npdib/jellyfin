@@ -41,6 +41,11 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// </summary>
     public static Plugin? Instance { get; private set; }
 
+    /// <summary>
+    /// Gets a value indicating whether the File Transformation plugin was detected at startup.
+    /// </summary>
+    public static bool IsFileTransformationAvailable { get; private set; }
+
     /// <inheritdoc />
     public override string Name => "Password Strength Enforcement";
 
@@ -115,6 +120,8 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         var fileTransformAssembly = AssemblyLoadContext.All
             .SelectMany(x => x.Assemblies)
             .FirstOrDefault(x => x.FullName?.Contains(".FileTransformation", StringComparison.Ordinal) ?? false);
+
+        IsFileTransformationAvailable = fileTransformAssembly is not null;
 
         if (fileTransformAssembly is null)
         {

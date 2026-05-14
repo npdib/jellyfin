@@ -70,12 +70,14 @@
     };
 
     function buildRequirementsText(policy) {
-        var parts = ['at least ' + policy.minLength + ' characters'];
-        if (policy.requireUppercase) { parts.push('one uppercase letter'); }
-        if (policy.requireLowercase) { parts.push('one lowercase letter'); }
-        if (policy.requireDigit) { parts.push('one number'); }
-        if (policy.requireSpecialCharacter) { parts.push('one special character'); }
-        return 'Requirements: ' + parts.join(', ') + '.';
+        var items = ['At least ' + policy.minLength + ' characters'];
+        if (policy.requireUppercase) { items.push('At least one uppercase letter'); }
+        if (policy.requireLowercase) { items.push('At least one lowercase letter'); }
+        if (policy.requireDigit) { items.push('At least one number'); }
+        if (policy.requireSpecialCharacter) { items.push('At least one special character'); }
+        return '<ul style="margin:0.5rem 0 0;padding-left:1.25rem">'
+            + items.map(function (i) { return '<li>' + i + '</li>'; }).join('')
+            + '</ul>';
     }
 
     function validatePolicy(pwd, policy) {
@@ -172,10 +174,10 @@
 
         card.innerHTML = [
             '<h2 style="margin:0 0 0.4rem;font-size:1.25rem">Password Change Required</h2>',
-            '<p style="margin:0 0 1.25rem;color:#999;font-size:0.875rem;line-height:1.5">',
-            'Your password must be updated before you can continue.<br>',
+            '<div style="margin:0 0 1.25rem;color:#999;font-size:0.875rem;line-height:1.5">',
+            '<p style="margin:0 0 0.25rem">Your password must be updated before you can continue.</p>',
             buildRequirementsText(currentPolicy),
-            '</p>',
+            '</div>',
             '<div id="pse-error" style="display:none;color:#ff6b6b;font-size:0.875rem;margin-bottom:0.75rem"></div>',
             buildField('pse-current', 'Current Password', 'current-password'),
             buildField('pse-new', 'New Password', 'new-password'),
