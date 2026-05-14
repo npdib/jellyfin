@@ -1,3 +1,10 @@
+// <copyright file="Plugin.cs" company="Exobotics Ltd">
+// Copyright (c) Exobotics Ltd. All rights reserved.
+// Licensed under the MIT License.
+// </copyright>
+
+namespace Jellyfin.Plugin.Template;
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -6,8 +13,6 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
-
-namespace Jellyfin.Plugin.Template;
 
 /// <summary>
 /// The main plugin.
@@ -25,16 +30,16 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         Instance = this;
     }
 
-    /// <inheritdoc />
-    public override string Name => "Template";
-
-    /// <inheritdoc />
-    public override Guid Id => Guid.Parse("eb5d7894-8eef-4b36-aa6f-5d124e828ce1");
-
     /// <summary>
     /// Gets the current plugin instance.
     /// </summary>
     public static Plugin? Instance { get; private set; }
+
+    /// <inheritdoc />
+    public override string Name => "Password Strength Enforcement";
+
+    /// <inheritdoc />
+    public override Guid Id => Guid.Parse("5a2d0001-12cf-4444-b2e3-e2f8e1f54e34");
 
     /// <inheritdoc />
     public IEnumerable<PluginPageInfo> GetPages()
@@ -43,9 +48,9 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         [
             new PluginPageInfo
             {
-                Name = Name,
-                EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", GetType().Namespace)
-            }
+                Name = this.Name,
+                EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", this.GetType().Namespace),
+            },
         ];
     }
 }

@@ -1,6 +1,11 @@
-using MediaBrowser.Model.Plugins;
+// <copyright file="PluginConfiguration.cs" company="Exobotics Ltd">
+// Copyright (c) Exobotics Ltd. All rights reserved.
+// Licensed under the MIT License.
+// </copyright>
 
 namespace Jellyfin.Plugin.Template.Configuration;
+
+using MediaBrowser.Model.Plugins;
 
 /// <summary>
 /// The configuration options.
@@ -15,7 +20,7 @@ public enum SomeOptions
     /// <summary>
     /// Second option.
     /// </summary>
-    AnotherOption
+    AnotherOption,
 }
 
 /// <summary>
@@ -29,10 +34,10 @@ public class PluginConfiguration : BasePluginConfiguration
     public PluginConfiguration()
     {
         // set default options here
-        Options = SomeOptions.AnotherOption;
-        TrueFalseSetting = true;
-        AnInteger = 2;
-        AString = "string";
+        this.Options = SomeOptions.AnotherOption;
+        this.TrueFalseSetting = true;
+        this.AnInteger = 2;
+        this.AString = "string";
     }
 
     /// <summary>
