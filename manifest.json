@@ -8,6 +8,14 @@
     "owner": "npdib",
     "versions": [
       {
+        "version": "0.5.4.0",
+        "changelog": "- fix: use 4-part versions in manifest to match DLL AssemblyVersion",
+        "targetAbi": "10.9.0.0",
+        "sourceUrl": "https://github.com/npdib/jellyfin/releases/download/v0.5.4/Jellyfin.Plugin.Template_0.5.4.zip",
+        "checksum": "8999F852FDF2F965178CC8DC70F76011",
+        "timestamp": "2026-05-14T17:29:26Z"
+      },
+      {
         "version": "0.5.3.0",
         "changelog": "- Fix policy enforcement: use dedicated POST /PasswordStrength/Policy endpoint so changes take effect immediately\n- Add File Transformation installation warning and detection to config page\n- Show password requirements as a bullet list in the enforcement modal\n- Fix disable/uninstall: align AssemblyVersion with manifest version\n- Add .claude/ to .gitignore",
         "targetAbi": "10.9.0.0",
