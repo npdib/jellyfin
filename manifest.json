@@ -8,12 +8,12 @@
     "owner": "npdib",
     "versions": [
       {
-        "version": "0.4.7",
+        "version": "0.4.9",
         "changelog": "Initial release — force reset button, strength validation, post-login enforcement overlay.",
         "targetAbi": "10.9.0.0",
-        "sourceUrl": "https://github.com/npdib/jellyfin/releases/download/v0.4.7/Jellyfin.Plugin.Template_0.4.7.zip",
-        "checksum": "A7AEDD8AE43453A9EB1E98CCE3A963E8",
-        "timestamp": "2026-05-14T14:16:22Z"
+        "sourceUrl": "https://github.com/npdib/jellyfin/releases/download/v0.4.9/Jellyfin.Plugin.Template_0.4.9.zip",
+        "checksum": "6F85ADADB0C1F190F0378D98DB3B52FE",
+        "timestamp": "2026-05-14T14:37:19Z"
       }
     ]
   }
