@@ -20,21 +20,34 @@
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     function getToken() {
-        if (typeof ApiClient !== 'undefined' && ApiClient.accessToken) {
-            return ApiClient.accessToken();
+        // Try ApiClient first (works in older Jellyfin web builds)
+        if (typeof ApiClient !== 'undefined' && typeof ApiClient.accessToken === 'function') {
+            var t = ApiClient.accessToken();
+            if (t) {
+                return t;
+            }
         }
+
+        // Fallback: read directly from localStorage where Jellyfin always persists the token
+        try {
+            var raw = localStorage.getItem('jellyfin_credentials');
+            if (raw) {
+                var creds = JSON.parse(raw);
+                var servers = creds.Servers || creds.servers || [];
+                for (var i = 0; i < servers.length; i++) {
+                    var token = servers[i].AccessToken || servers[i].accessToken;
+                    if (token) {
+                        return token;
+                    }
+                }
+            }
+        } catch (e) { /* storage unavailable */ }
 
         return null;
     }
 
     function isLoggedIn() {
-        if (typeof ApiClient === 'undefined') {
-            return false;
-        }
-
-        return typeof ApiClient.isLoggedIn === 'function'
-            ? ApiClient.isLoggedIn()
-            : !!getToken();
+        return !!getToken();
     }
 
     function buildUrl(path) {
