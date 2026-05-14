@@ -75,8 +75,9 @@ jobs:
           sed -i "s|<Version>.*</Version>|<Version>${VERSION}.0</Version>|" Jellyfin.Plugin.Template.csproj
 
           # Prepend new version entry; remove any existing entry with the same version (idempotent).
+          # Version uses 4 parts (e.g. 0.5.4.0) to match the DLL AssemblyVersion exactly.
           jq \
-            --arg ver  "$VERSION" \
+            --arg ver  "${VERSION}.0" \
             --arg url  "$URL" \
             --arg sum  "$CHECKSUM" \
             --arg ts   "$TIMESTAMP" \
