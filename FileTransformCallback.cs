@@ -36,7 +36,7 @@ public static class FileTransformCallback
 
         // Guard: only transform HTML. The File Transformation plugin may match chunk .js files
         // whose names contain "index" + any char + "html" if the pattern is treated as a regex.
-        if (!contents.TrimStart().StartsWith("<", StringComparison.Ordinal))
+        if (!contents.TrimStart().StartsWith('<'))
         {
             return contents;
         }
