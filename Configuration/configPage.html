@@ -15,32 +15,6 @@
 
                 <h2 style="margin-top:0">Password Strength Enforcement</h2>
 
-                <!-- ── Setup Instructions ──────────────────────────────── -->
-                <div class="verticalSection" style="margin-bottom:2em">
-                    <h3>Setup — custom.js</h3>
-                    <p style="color:#aaa;font-size:0.9em;line-height:1.6">
-                        The enforcement overlay requires a one-line loader in your Jellyfin web
-                        <strong>custom.js</strong> file. Place it at:<br>
-                        <code>/usr/share/jellyfin/web/custom.js</code>
-                        (or the equivalent path for your installation).<br><br>
-                        Copy the snippet below into that file. If the file already exists,
-                        append it on a new line.
-                    </p>
-                    <pre id="PseSnippet"
-                         style="background:#111;color:#ccc;padding:1em;border-radius:4px;font-size:0.85em;overflow-x:auto;white-space:pre-wrap;word-break:break-all"></pre>
-                    <button is="emby-button"
-                            class="raised emby-button"
-                            type="button"
-                            onclick="pseCopySnippet()"
-                            style="margin-top:0.5em">
-                        <span>Copy to Clipboard</span>
-                    </button>
-                    <div id="PseCopyStatus"
-                         style="font-size:0.85em;color:#4caf50;margin-top:0.4em;display:none">
-                        Copied!
-                    </div>
-                </div>
-
                 <!-- ── Force Reset ──────────────────────────────────────── -->
                 <div class="verticalSection">
                     <h3>Force Password Reset</h3>
@@ -83,31 +57,6 @@
         <script type="text/javascript">
             (function () {
                 var PLUGIN_API = '/PasswordStrength';
-
-                // Build the custom.js snippet using the current server address
-                var serverUrl = ApiClient.serverAddress().replace(/\/$/, '');
-                var snippetEl = document.getElementById('PseSnippet');
-                var snippet = [
-                    '// Password Strength Enforcement plugin loader',
-                    '(function () {',
-                    '    var s = document.createElement(\'script\');',
-                    '    s.src = \'' + serverUrl + PLUGIN_API + '/enforcement.js\';',
-                    '    s.defer = true;',
-                    '    document.head.appendChild(s);',
-                    '}());',
-                ].join('\n');
-                snippetEl.textContent = snippet;
-
-                window.pseCopySnippet = function () {
-                    navigator.clipboard.writeText(snippet).then(function () {
-                        var status = document.getElementById('PseCopyStatus');
-                        status.style.display = 'block';
-                        window.setTimeout(function () { status.style.display = 'none'; }, 2500);
-                    }).catch(function () {
-                        // Fallback for older browsers
-                        snippetEl.select && snippetEl.select();
-                    });
-                };
 
                 window.pseForceReset = function () {
                     var password = document.getElementById('PseAdminPassword').value;
