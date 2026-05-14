@@ -57,7 +57,7 @@ public class PasswordStrengthController : ControllerBase
     /// </summary>
     /// <returns>A <see cref="PasswordStatusResponse"/> indicating reset requirement.</returns>
     [HttpGet("Status")]
-    [Authorize(Policy = "DefaultAuthorization")]
+    [Authorize]
     public async Task<ActionResult<PasswordStatusResponse>> GetStatusAsync()
     {
         var authInfo = await this._authorizationContext.GetAuthorizationInfo(this.Request).ConfigureAwait(false);
@@ -85,7 +85,7 @@ public class PasswordStrengthController : ControllerBase
     /// <param name="request">The password change request.</param>
     /// <returns>204 No Content on success; 400/401/429 on failure.</returns>
     [HttpPost("ChangePassword")]
-    [Authorize(Policy = "DefaultAuthorization")]
+    [Authorize]
     public async Task<ActionResult> ChangePasswordAsync([FromBody] ChangePasswordRequest request)
     {
         var authInfo = await this._authorizationContext.GetAuthorizationInfo(this.Request).ConfigureAwait(false);
@@ -111,14 +111,22 @@ public class PasswordStrengthController : ControllerBase
 
         // Verify current password before accepting the change.
         // This protects against stolen session tokens being used to change a password silently.
+        // AuthenticateUser may return null OR throw on failure depending on the Jellyfin version.
         try
         {
             var remoteIp = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
-            await this._userManager.AuthenticateUser(
+            var verified = await this._userManager.AuthenticateUser(
                 authInfo.User.Username,
                 request.CurrentPassword,
                 remoteIp,
                 false).ConfigureAwait(false);
+
+            if (verified is null)
+            {
+                this._logger.LogWarning("Current password verification returned null for user {UserId}", userId);
+                PasswordAttemptTracker.RecordFailure(userId);
+                return this.BadRequest(new ErrorResponse("Current password is incorrect."));
+            }
         }
         catch (Exception ex)
         {
@@ -171,14 +179,23 @@ public class PasswordStrengthController : ControllerBase
         }
 
         // Re-authenticate the admin to confirm the destructive action.
+        // AuthenticateUser may return null OR throw on failure depending on the Jellyfin version.
         try
         {
             var remoteIp = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
-            await this._userManager.AuthenticateUser(
+            var verified = await this._userManager.AuthenticateUser(
                 authInfo.User.Username,
                 request.AdminPassword,
                 remoteIp,
                 false).ConfigureAwait(false);
+
+            if (verified is null)
+            {
+                this._logger.LogWarning(
+                    "Admin re-authentication returned null for ForceReset — user {AdminUserId}",
+                    authInfo.UserId);
+                return this.Unauthorized(new ErrorResponse("Password confirmation failed."));
+            }
         }
         catch (Exception ex)
         {
