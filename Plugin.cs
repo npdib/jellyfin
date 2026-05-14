@@ -8,11 +8,14 @@ namespace Jellyfin.Plugin.Template;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Runtime.Loader;
 using Jellyfin.Plugin.Template.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
+using Newtonsoft.Json.Linq;
 
 /// <summary>
 /// The main plugin.
@@ -28,6 +31,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
         : base(applicationPaths, xmlSerializer)
     {
         Instance = this;
+        this.RegisterIndexTransformation();
     }
 
     /// <summary>
@@ -52,5 +56,34 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", this.GetType().Namespace),
             },
         ];
+    }
+
+    private void RegisterIndexTransformation()
+    {
+        var fileTransformAssembly = AssemblyLoadContext.All
+            .SelectMany(x => x.Assemblies)
+            .FirstOrDefault(x => x.FullName?.Contains(".FileTransformation", StringComparison.Ordinal) ?? false);
+
+        if (fileTransformAssembly is null)
+        {
+            return;
+        }
+
+        var pluginInterfaceType = fileTransformAssembly.GetType("Jellyfin.Plugin.FileTransformation.PluginInterface");
+        if (pluginInterfaceType is null)
+        {
+            return;
+        }
+
+        var payload = new JObject
+        {
+            ["id"] = "3f8a1c2d-4e5b-6f70-89ab-cdef01234567",
+            ["fileNamePattern"] = "index.html",
+            ["callbackAssembly"] = this.GetType().Assembly.FullName,
+            ["callbackClass"] = typeof(FileTransformCallback).FullName,
+            ["callbackMethod"] = nameof(FileTransformCallback.InjectLoader),
+        };
+
+        pluginInterfaceType.GetMethod("RegisterTransformation")?.Invoke(null, new object?[] { payload });
     }
 }
