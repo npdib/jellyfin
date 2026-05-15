@@ -8,6 +8,14 @@
     "owner": "npdib",
     "versions": [
       {
+        "version": "1.1.1.0",
+        "changelog": "- chore: bump version to 1.1.1",
+        "targetAbi": "10.9.0.0",
+        "sourceUrl": "https://github.com/npdib/jellyfin/releases/download/v1.1.1/Jellyfin.Plugin.Template_1.1.1.zip",
+        "checksum": "E000B91DAB02C10C324C303A6CB4459E",
+        "timestamp": "2026-05-15T10:26:06Z"
+      },
+      {
         "version": "1.1.0.0",
         "changelog": "- ci: create GitHub release before committing manifest\n- fix: scrollable modal for mobile keyboard — two-layer scroll, no-store cache",
         "targetAbi": "10.9.0.0",
