@@ -59,10 +59,18 @@ jobs:
           echo "MD5=$MD5" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2.3.2
-        with:
-          files: dist/Jellyfin.Plugin.Template_${{ steps.version.outputs.VERSION }}.zip
-          generate_release_notes: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          ZIP="dist/Jellyfin.Plugin.Template_${VERSION}.zip"
+          NOTES=$(cat changelog.txt)
+          # Delete any pre-existing release for this tag (handles tag-deletion/recreation).
+          gh release delete "v${VERSION}" --repo "${{ github.repository }}" --yes 2>/dev/null || true
+          gh release create "v${VERSION}" "$ZIP" \
+            --repo "${{ github.repository }}" \
+            --title "v${VERSION}" \
+            --notes "$NOTES"
 
       - name: Commit updated manifest.json
         run: |
