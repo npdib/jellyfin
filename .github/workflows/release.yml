@@ -58,6 +58,12 @@ jobs:
                 | awk '{print $1}' | tr '[:lower:]' '[:upper:]')
           echo "MD5=$MD5" >> "$GITHUB_OUTPUT"
 
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2.3.2
+        with:
+          files: dist/Jellyfin.Plugin.Template_${{ steps.version.outputs.VERSION }}.zip
+          generate_release_notes: true
+
       - name: Commit updated manifest.json
         run: |
           git config user.name  "github-actions[bot]"
@@ -98,9 +104,3 @@ jobs:
           git diff --staged --quiet || \
             git commit -m "chore: update manifest and version for v${VERSION} [skip ci]"
           git push origin main
-
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2.3.2
-        with:
-          files: dist/Jellyfin.Plugin.Template_${{ steps.version.outputs.VERSION }}.zip
-          generate_release_notes: true
