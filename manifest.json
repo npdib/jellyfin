@@ -9,11 +9,11 @@
     "versions": [
       {
         "version": "1.1.1.0",
-        "changelog": "- chore: bump version to 1.1.1",
+        "changelog": "- ci: replace softprops action with gh release create (handles tag recreation)\n- chore: bump version to 1.1.1",
         "targetAbi": "10.9.0.0",
         "sourceUrl": "https://github.com/npdib/jellyfin/releases/download/v1.1.1/Jellyfin.Plugin.Template_1.1.1.zip",
-        "checksum": "E000B91DAB02C10C324C303A6CB4459E",
-        "timestamp": "2026-05-15T10:26:06Z"
+        "checksum": "2CFE3DDB07573176CDDF752F854A8770",
+        "timestamp": "2026-05-15T10:28:24Z"
       },
       {
         "version": "1.1.0.0",
