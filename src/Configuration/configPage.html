@@ -90,6 +90,24 @@
                         </button>
                     </div>
 
+                    <!-- ── Pending Resets ─────────────────────────────────────── -->
+                    <div class="verticalSection" style="margin-top:2rem">
+                        <h3>Awaiting Password Reset</h3>
+                        <p style="color:#aaa;font-size:0.9em;line-height:1.6">
+                            Users listed here have been flagged for a mandatory reset but have not yet
+                            changed their password. Remove a user to cancel their pending reset.
+                        </p>
+                        <div id="PsePendingList" style="margin:0.75rem 0;min-height:2.5rem;
+                             border:1px solid #444;border-radius:4px;padding:0.5rem;background:#1a1a1a">
+                            <p style="color:#777;font-size:0.85em;margin:0.25rem 0">Loading&hellip;</p>
+                        </div>
+                        <button is="emby-button" class="emby-button" type="button"
+                                onclick="pseLoadPending()"
+                                style="font-size:0.85rem;margin-top:0.25rem">
+                            Refresh
+                        </button>
+                    </div>
+
                     <!-- ── Force Reset ──────────────────────────────────────────── -->
                     <div class="verticalSection" style="margin-top:2rem">
                         <h3>Force Password Reset</h3>
@@ -219,6 +237,7 @@
                     document.getElementById('PseRequireSpecial').checked = !!pol.requireSpecialCharacter;
 
                     loadUsers();
+                    window.pseLoadPending();
                 }).catch(function () {
                     // If the config endpoint fails, still show the page so the warning renders
                     document.getElementById('PseFtWarning').style.display = 'block';
@@ -258,6 +277,61 @@
                     }).catch(function () {
                         document.getElementById('PseUserList').innerHTML =
                             '<p style="color:#ff6b6b;font-size:0.85em;margin:0.25rem 0">Failed to load users.</p>';
+                    });
+                }
+
+                // ── Pending resets list ────────────────────────────────────
+
+                window.pseLoadPending = function () {
+                    var listEl = document.getElementById('PsePendingList');
+                    listEl.innerHTML = '<p style="color:#777;font-size:0.85em;margin:0.25rem 0">Loading&hellip;</p>';
+
+                    window.fetch(apiUrl(PLUGIN_API + '/PendingResets'), {
+                        headers: authHeaders(),
+                    }).then(function (r) {
+                        return r.json();
+                    }).then(function (users) {
+                        if (!users || users.length === 0) {
+                            listEl.innerHTML = '<p style="color:#777;font-size:0.85em;margin:0.25rem 0">No users are currently awaiting a password reset.</p>';
+                            return;
+                        }
+                        listEl.innerHTML = '';
+                        users.forEach(function (u) {
+                            var row = document.createElement('div');
+                            row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0.35rem 0.25rem;border-radius:3px';
+
+                            var name = document.createElement('span');
+                            name.style.fontSize = '0.9em';
+                            name.textContent = u.name;
+
+                            var removeBtn = document.createElement('button');
+                            removeBtn.textContent = 'Remove';
+                            removeBtn.style.cssText = 'font-size:0.75rem;padding:0.2rem 0.6rem;background:#444;color:#ccc;border:none;border-radius:3px;cursor:pointer';
+                            removeBtn.onclick = function () {
+                                pseRemovePending(u.id, row);
+                            };
+
+                            row.appendChild(name);
+                            row.appendChild(removeBtn);
+                            listEl.appendChild(row);
+                        });
+                    }).catch(function () {
+                        listEl.innerHTML = '<p style="color:#ff6b6b;font-size:0.85em;margin:0.25rem 0">Failed to load pending resets.</p>';
+                    });
+                };
+
+                function pseRemovePending(userId, rowEl) {
+                    window.fetch(apiUrl(PLUGIN_API + '/PendingResets/' + encodeURIComponent(userId)), {
+                        method: 'DELETE',
+                        headers: authHeaders(),
+                    }).then(function (r) {
+                        if (r.status === 204) {
+                            rowEl.remove();
+                            var listEl = document.getElementById('PsePendingList');
+                            if (listEl.children.length === 0) {
+                                listEl.innerHTML = '<p style="color:#777;font-size:0.85em;margin:0.25rem 0">No users are currently awaiting a password reset.</p>';
+                            }
+                        }
                     });
                 }
 
@@ -355,6 +429,7 @@
                             successEl.textContent = 'Done. ' + selected.length + ' user(s) will be required to set a new password on next login.';
                             successEl.style.display = 'block';
                             pseSelectAll(false);
+                            window.pseLoadPending();
                         } else {
                             return r.json().then(function (data) {
                                 errEl.textContent = data.message || 'An error occurred.';
@@ -398,6 +473,7 @@
                             successEl.textContent = 'Done. All non-admin users have been logged out and will be required to set a new password.';
                             successEl.style.display = 'block';
                             pseSelectAll(false);
+                            window.pseLoadPending();
                         } else {
                             return r.json().then(function (data) {
                                 errEl.textContent = data.message || 'An error occurred.';

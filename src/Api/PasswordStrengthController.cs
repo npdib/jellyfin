@@ -448,6 +448,69 @@ public class PasswordStrengthController : ControllerBase
     }
 
     /// <summary>
+    /// Returns all users currently flagged for a mandatory password reset, with their display names.
+    /// </summary>
+    /// <returns>A list of <see cref="PendingResetUserResponse"/> objects.</returns>
+    [HttpGet("PendingResets")]
+    [Authorize(Policy = "RequiresElevation")]
+    public ActionResult<IEnumerable<PendingResetUserResponse>> GetPendingResets()
+    {
+        var instance = Plugin.Instance;
+        if (instance is null)
+        {
+            return this.StatusCode(StatusCodes.Status503ServiceUnavailable, new ErrorResponse("Plugin not ready."));
+        }
+
+        this.Response.Headers.CacheControl = "no-store";
+
+        var flaggedIds = instance.Configuration.ForcedResetUserIds.ToList();
+
+        var result = flaggedIds
+            .Select(id =>
+            {
+                if (!Guid.TryParseExact(id, "N", out var guid))
+                {
+                    return null;
+                }
+
+                var user = this._userManager.Users.FirstOrDefault(u => u.Id == guid);
+                return user is null ? null : new PendingResetUserResponse { Id = id, Name = user.Username };
+            })
+            .Where(x => x is not null)
+            .ToList();
+
+        return this.Ok(result);
+    }
+
+    /// <summary>
+    /// Removes a single user from the pending-reset list without requiring password confirmation.
+    /// The user keeps their current password; they will no longer be prompted to reset it.
+    /// </summary>
+    /// <param name="userId">The user ID (format N, no hyphens) to remove.</param>
+    /// <returns>204 No Content on success; 404 if the user was not in the pending list.</returns>
+    [HttpDelete("PendingResets/{userId}")]
+    [Authorize(Policy = "RequiresElevation")]
+    public ActionResult RemovePendingReset(string userId)
+    {
+        var instance = Plugin.Instance;
+        if (instance is null)
+        {
+            return this.StatusCode(StatusCodes.Status503ServiceUnavailable, new ErrorResponse("Plugin not ready."));
+        }
+
+        if (!instance.Configuration.ForcedResetUserIds.Contains(userId))
+        {
+            return this.NotFound(new ErrorResponse("User is not in the pending-reset list."));
+        }
+
+        Plugin.RemoveForcedResetUser(userId);
+        instance.SaveConfiguration();
+
+        this._logger.LogInformation("Pending reset cancelled for user {UserId}", userId);
+        return this.NoContent();
+    }
+
+    /// <summary>
     /// Serves the client-side enforcement script as a static JavaScript file.
     /// This endpoint is intentionally anonymous — the script contains no sensitive data.
     /// </summary>
