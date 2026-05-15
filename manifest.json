@@ -8,6 +8,14 @@
     "owner": "npdib",
     "versions": [
       {
+        "version": "1.2.1.0",
+        "changelog": "- fix: unicode special-char check, nullable LINQ, reflection resilience, GET headers",
+        "targetAbi": "10.9.0.0",
+        "sourceUrl": "https://github.com/npdib/jellyfin/releases/download/v1.2.1/Jellyfin.Plugin.Template_1.2.1.zip",
+        "checksum": "E7B5646C03460C37FE72034EE05A3473",
+        "timestamp": "2026-05-15T11:07:34Z"
+      },
+      {
         "version": "1.2.0.0",
         "changelog": "- fix: pending resets panel width and name display\n- feat: show pending password resets in config panel (v1.2.0)",
         "targetAbi": "10.9.0.0",
