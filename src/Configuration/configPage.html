@@ -207,7 +207,14 @@
                     return path;
                 }
 
-                function authHeaders() {
+                function getHeaders() {
+                    return {
+                        'Accept': 'application/json',
+                        'X-Emby-Token': getToken(),
+                    };
+                }
+
+                function postHeaders() {
                     return {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
@@ -218,7 +225,7 @@
                 // ── Load config ────────────────────────────────────────────
 
                 window.fetch(apiUrl(PLUGIN_API + '/Config'), {
-                    headers: authHeaders(),
+                    headers: getHeaders(),
                 }).then(function (r) {
                     return r.json();
                 }).then(function (data) {
@@ -247,7 +254,7 @@
 
                 function loadUsers() {
                     window.fetch(apiUrl('/Users'), {
-                        headers: authHeaders(),
+                        headers: getHeaders(),
                     }).then(function (r) {
                         return r.json();
                     }).then(function (users) {
@@ -287,7 +294,7 @@
                     listEl.innerHTML = '<p style="color:#777;font-size:0.85em;margin:0.25rem 0">Loading&hellip;</p>';
 
                     window.fetch(apiUrl(PLUGIN_API + '/PendingResets'), {
-                        headers: authHeaders(),
+                        headers: getHeaders(),
                     }).then(function (r) {
                         return r.json();
                     }).then(function (users) {
@@ -324,7 +331,7 @@
                 function pseRemovePending(userId, rowEl) {
                     window.fetch(apiUrl(PLUGIN_API + '/PendingResets/' + encodeURIComponent(userId)), {
                         method: 'DELETE',
-                        headers: authHeaders(),
+                        headers: getHeaders(),
                     }).then(function (r) {
                         if (r.status === 204) {
                             rowEl.remove();
@@ -364,7 +371,7 @@
 
                     window.fetch(apiUrl(PLUGIN_API + '/Policy'), {
                         method: 'POST',
-                        headers: authHeaders(),
+                        headers: postHeaders(),
                         body: JSON.stringify({
                             MinLength: minLen,
                             RequireUppercase: document.getElementById('PseRequireUppercase').checked,
@@ -421,7 +428,7 @@
 
                     window.fetch(apiUrl(PLUGIN_API + '/ForceResetUsers'), {
                         method: 'POST',
-                        headers: authHeaders(),
+                        headers: postHeaders(),
                         body: JSON.stringify({ adminPassword: password, userIds: selected }),
                     }).then(function (r) {
                         btn.disabled = false;
@@ -465,7 +472,7 @@
 
                     window.fetch(apiUrl(PLUGIN_API + '/ForceReset'), {
                         method: 'POST',
-                        headers: authHeaders(),
+                        headers: postHeaders(),
                         body: JSON.stringify({ adminPassword: password }),
                     }).then(function (r) {
                         btn.disabled = false;

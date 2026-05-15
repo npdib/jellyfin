@@ -465,19 +465,20 @@ public class PasswordStrengthController : ControllerBase
 
         var flaggedIds = instance.Configuration.ForcedResetUserIds.ToList();
 
-        var result = flaggedIds
-            .Select(id =>
+        var result = new List<PendingResetUserResponse>();
+        foreach (var id in flaggedIds)
+        {
+            if (!Guid.TryParseExact(id, "N", out var guid))
             {
-                if (!Guid.TryParseExact(id, "N", out var guid))
-                {
-                    return null;
-                }
+                continue;
+            }
 
-                var user = this._userManager.Users.FirstOrDefault(u => u.Id == guid);
-                return user is null ? null : new PendingResetUserResponse { Id = id, Name = user.Username };
-            })
-            .Where(x => x is not null)
-            .ToList();
+            var user = this._userManager.Users.FirstOrDefault(u => u.Id == guid);
+            if (user is not null)
+            {
+                result.Add(new PendingResetUserResponse { Id = id, Name = user.Username });
+            }
+        }
 
         return this.Ok(result);
     }

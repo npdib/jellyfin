@@ -143,6 +143,13 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             ["callbackMethod"] = nameof(FileTransformCallback.InjectLoader),
         };
 
-        pluginInterfaceType.GetMethod("RegisterTransformation")?.Invoke(null, new object?[] { payload });
+        try
+        {
+            pluginInterfaceType.GetMethod("RegisterTransformation")?.Invoke(null, new object?[] { payload });
+        }
+        catch (Exception)
+        {
+            // File Transformation API changed; overlay injection is skipped but the plugin stays functional.
+        }
     }
 }

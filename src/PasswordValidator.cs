@@ -41,7 +41,7 @@ public static class PasswordValidator
             return new ValidationResult(false, "Password must contain at least one number.");
         }
 
-        if (config.RequireSpecialCharacter && !password.Any(c => !char.IsLetterOrDigit(c)))
+        if (config.RequireSpecialCharacter && !password.Any(c => !char.IsAsciiLetterOrDigit(c)))
         {
             return new ValidationResult(false, "Password must contain at least one special character.");
         }
