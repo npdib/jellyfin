@@ -156,10 +156,23 @@
             'inset:0',
             'background:rgba(0,0,0,0.92)',
             'z-index:99999',
-            'display:flex',
-            'align-items:center',
-            'justify-content:center',
+            'overflow:hidden',
             'font-family:inherit',
+        ].join(';');
+
+        // position:absolute (not fixed) is required — Android Chrome does not
+        // allow touch-scrolling a position:fixed overflow container.
+        // padding-top centres the card visually; padding-bottom ensures the
+        // content is always taller than the viewport so the user can scroll
+        // the card up out of the way when the keyboard opens.
+        var scroller = document.createElement('div');
+        scroller.style.cssText = [
+            'position:absolute',
+            'inset:0',
+            'overflow-y:scroll',
+            'overscroll-behavior:contain',
+            'padding:20vh 1rem 50vh',
+            'box-sizing:border-box',
         ].join(';');
 
         var card = document.createElement('div');
@@ -168,10 +181,11 @@
             'color:#e0e0e0',
             'padding:2rem',
             'border-radius:8px',
-            'width:90%',
+            'width:100%',
             'max-width:380px',
             'box-sizing:border-box',
             'box-shadow:0 8px 32px rgba(0,0,0,0.6)',
+            'margin:0 auto',
         ].join(';');
 
         card.innerHTML = [
@@ -191,7 +205,8 @@
             '">Change Password</button>',
         ].join('');
 
-        overlay.appendChild(card);
+        scroller.appendChild(card);
+        overlay.appendChild(scroller);
         document.body.appendChild(overlay);
 
         document.getElementById('pse-current').focus();

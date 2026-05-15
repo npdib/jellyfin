@@ -8,6 +8,14 @@
     "owner": "npdib",
     "versions": [
       {
+        "version": "1.0.0.0",
+        "changelog": "- security: harden plugin for public exposure",
+        "targetAbi": "10.9.0.0",
+        "sourceUrl": "https://github.com/npdib/jellyfin/releases/download/v1.0.0/Jellyfin.Plugin.Template_1.0.0.zip",
+        "checksum": "93B96848375C22EE9E39AF287A45FC74",
+        "timestamp": "2026-05-14T17:46:20Z"
+      },
+      {
         "version": "0.5.4.0",
         "changelog": "- fix: use 4-part versions in manifest to match DLL AssemblyVersion",
         "targetAbi": "10.9.0.0",

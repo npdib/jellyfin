@@ -464,7 +464,7 @@ public class PasswordStrengthController : ControllerBase
             return this.NotFound();
         }
 
-        this.Response.Headers.CacheControl = "public, max-age=3600";
+        this.Response.Headers.CacheControl = "no-store";
         using var reader = new StreamReader(stream);
         return this.Content(reader.ReadToEnd(), "application/javascript; charset=utf-8");
     }
