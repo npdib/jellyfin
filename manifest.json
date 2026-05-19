@@ -8,6 +8,14 @@
     "owner": "npdib",
     "versions": [
       {
+        "version": "1.3.0.0",
+        "changelog": "- feat: auto-flag new non-admin users for mandatory password reset",
+        "targetAbi": "10.9.0.0",
+        "sourceUrl": "https://github.com/npdib/jellyfin/releases/download/v1.3.0/Jellyfin.Plugin.Template_1.3.0.zip",
+        "checksum": "12F7A3A4DEEBE7555CCF5A889455470C",
+        "timestamp": "2026-05-19T10:28:29Z"
+      },
+      {
         "version": "1.2.1.0",
         "changelog": "- fix: unicode special-char check, nullable LINQ, reflection resilience, GET headers",
         "targetAbi": "10.9.0.0",
